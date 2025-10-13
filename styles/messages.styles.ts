@@ -1,0 +1,117 @@
+import { COLORS } from "@/constants/theme";
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.background,
+    flex: 1,
+  },
+  textInputContainer: {
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 40,
+    paddingHorizontal: 10,
+    paddingVertical: 15,
+    width: "100%",
+  },
+
+  textInput: {
+    color: COLORS.textPrimary,
+    borderRadius: 20,
+    borderColor: COLORS.grey,
+    borderWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingRight: 36,
+    fontSize: 20,
+    width: "90%",
+    backgroundColor: COLORS.background,
+    opacity: 0.7,
+  },
+  createButton: {
+    width: 60,
+    aspectRatio: 1,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.surfaceAlternate,
+    position: "absolute",
+    bottom: 40,
+    right: 40,
+  },
+
+  label: {
+    color: "#fff",
+    fontSize: 18,
+    marginBottom: 4,
+    fontFamily: "InterRegular",
+    paddingHorizontal: 2,
+  },
+  memberContainer: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    marginHorizontal: 6,
+    marginVertical: 12,
+  },
+  memberListBackdrop: {
+    marginHorizontal: 20,
+    paddingTop: 20,
+    borderRadius: 40,
+    justifyContent: "center",
+    height: 350,
+  },
+  divSpace: {
+    paddingVertical: 5,
+    paddingHorizontal: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
+  divTitle: {
+    fontSize: 28,
+    color: COLORS.white,
+    marginBottom: 0,
+    marginTop: 0,
+    fontFamily: "PoppinsMedium",
+  },
+  header: {
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 40,
+    color: COLORS.white,
+    marginBottom: 0,
+    marginTop: 0,
+    fontFamily: "PoppinsBold",
+  },
+
+  gradientBar: {
+    height: 3,
+    borderRadius: 2,
+    marginBottom: 20,
+    marginTop: 0,
+    width: "110%",
+  },
+  chatName: {
+    color: COLORS.textPrimary,
+    fontFamily: "PoppinsSemiBold",
+    fontSize: 32,
+    textAlign: "center",
+  },
+  chatSubtext: {
+    color: COLORS.textSecondary,
+    fontFamily: "InterMedium",
+    fontSize: 18,
+    textAlign: "center",
+  },
+});

@@ -1,0 +1,61 @@
+import CreateSchool from "@/components/createSchool";
+import JoinSchool from "@/components/joinSchool";
+import SchoolDashboard from "@/components/schoolDashboard";
+import { COLORS } from "@/constants/theme";
+import { useUserData } from "@/hooks/useUserData";
+import { styles } from "@/styles/create.styles";
+import React from "react";
+import {
+  Keyboard,
+  Platform,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+export default function schoolSeletion() {
+  const currentUser = useUserData();
+  const insets = useSafeAreaInsets();
+  const isNewUser = !currentUser?.userData.school;
+  const isAdmin = currentUser?.userData.role == "superAdmin";
+  const logTest = () =>
+    console.log(currentUser?.userData.school, " ", isNewUser);
+  return (
+    <TouchableWithoutFeedback
+      onPressIn={Platform.OS === "web" ? undefined : Keyboard.dismiss}
+      style={{ flex: 1 }}
+    >
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: COLORS.background,
+            paddingTop: insets.top,
+            marginBottom: insets.bottom,
+            marginRight: insets.right,
+            marginLeft: insets.left,
+          },
+        ]}
+      >
+        {isAdmin ? (
+          currentUser.userData.school ? (
+            <SchoolDashboard />
+          ) : (
+            <CreateSchool />
+          )
+        ) : isNewUser ? (
+          <JoinSchool />
+        ) : (
+          <SchoolDashboard />
+        )}
+      </View>
+    </TouchableWithoutFeedback>
+  );
+}
+
+/*
+<TouchableOpacity
+        onPress={logTest}
+        style={{ backgroundColor: "white", height: 50, width: 50 }}
+      ></TouchableOpacity>
+*/
