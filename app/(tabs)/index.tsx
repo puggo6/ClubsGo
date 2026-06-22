@@ -4,14 +4,23 @@ import CreateAnnouncement from "@/components/createAnnouncement";
 import CreateEvent from "@/components/createEvent";
 import Divider from "@/components/divider";
 import { SizeGradientButton } from "@/components/gradientButton";
+import HomeDashboard from "@/components/homeDashboard";
 import LoadingScreen from "@/components/loadingScreen";
+import { ChildCard } from "@/components/memberCard";
 import NewFAB from "@/components/NewFAB";
+import { Pager } from "@/components/pager";
+import {
+  hasAdminAccess,
+  isHeadAdmin,
+  isParent,
+  isStudent,
+} from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/browse.styles";
-import AntDesign from "@expo/vector-icons/AntDesign";
+import { AntDesign } from "@expo/vector-icons";
 import BottomSheet, {
   BottomSheetBackgroundProps,
   BottomSheetFooter,
@@ -19,6 +28,7 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { BottomSheetDefaultFooterProps } from "@gorhom/bottom-sheet/lib/typescript/components/bottomSheetFooter/types";
 import { useMutation } from "convex/react";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, {
@@ -29,7 +39,9 @@ import React, {
   useState,
 } from "react";
 import { Animated, Dimensions, SectionList, Text, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function index() {
   const currentUser = useUserData();
@@ -53,9 +65,12 @@ export default function index() {
 
   const forceRerender = () => setRefreshKey((k) => k + 1);
   const snapPoints = ["100%", "75%", "50%"];
-
+  const handleHaptics = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  };
   const screenWidth = Dimensions.get("window").width;
   const school = currentUser?.userData.school;
+
   const rawClubList = currentUser?.userData.clubs ?? [];
   const [bottomSheetMode, setBottomMode] = useState<number>(0); // 0 for club creation, 1 for announcement, 2 for event
   const pendingClubList = useMemo(() => {
@@ -63,6 +78,17 @@ export default function index() {
       (c): c is NonNullable<typeof c> => c !== null
     );
   }, [currentUser?.userData.requestedClubs]);
+
+  const reqChildList = useMemo(() => {
+    return (currentUser?.userData.requestedChildren ?? []).filter(
+      (c): c is NonNullable<typeof c> => c !== null
+    );
+  }, [currentUser?.userData.requestedChildren]);
+  const appChildList = useMemo(() => {
+    return (currentUser?.userData.approvedChildren ?? []).filter(
+      (c): c is NonNullable<typeof c> => c !== null
+    );
+  }, [currentUser?.userData.approvedChildren]);
 
   const clubList = useMemo(() => {
     return (currentUser?.userData.clubs ?? []).filter(
@@ -152,6 +178,17 @@ export default function index() {
     },
   ];
 
+  const PARENT_DATA = [
+    {
+      title: "Added Children",
+      data: appChildList,
+    },
+    {
+      title: "Pending Children",
+      data: reqChildList,
+    },
+  ];
+
   return (
     <View
       style={[
@@ -165,7 +202,7 @@ export default function index() {
       ]}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Clubs </Text>
+        <Text style={styles.headerTitle}>Home</Text>
       </View>
       <LinearGradient
         colors={["#12c2e9", "#c471ed", "#f64f59"]}
@@ -173,44 +210,127 @@ export default function index() {
         end={{ x: 1, y: 0 }}
         style={styles.gradientBar}
       />
-
-      {currentUser.userData.school && !noClubs && (
-        <View style={styles.cardsContainer}>
-          <SectionList
-            sections={DATA}
-            keyExtractor={(item) => item._id.toString()}
-            contentContainerStyle={{ padding: 16 }}
-            renderItem={({ item }) => (
-              <View>
-                <ClubCard
-                  onPress={() => routeToManager(item._id)}
-                  club={item}
-                  joinCard={false}
-                  canManage={
-                    !currentUser.userData.requestedClubs
-                      .map((club) => {
-                        if (!club) return null;
-                        return typeof club === "string" ? club : club._id;
-                      })
-                      .includes(item._id)
-                  }
-                />
-              </View>
-            )}
-            renderSectionHeader={({ section: { title } }) => (
-              <>
-                <View style={styles.divSpace}>
-                  <Text style={styles.divTitle}>{title}</Text>
-                  <Divider />
-                </View>
-              </>
-            )}
-            horizontal={false} //
-            scrollEnabled={true}
-            showsHorizontalScrollIndicator={false}
-          />
-        </View>
-      )}
+      <View style={{}}>
+        {!currentUser.userData.school && (
+          <>
+            <Text
+              style={{
+                fontFamily: "InterSemiBold",
+                marginHorizontal: 20,
+                marginVertical: 20,
+                fontSize: 32,
+                color: COLORS.textPrimary,
+                textAlign: "center",
+              }}
+            >
+              {!currentUser.userData.school
+                ? "Tap the school icon " +
+                  (isHeadAdmin(role)
+                    ? " to create a school!"
+                    : "and join a school to " +
+                      (isStudent(role)
+                        ? "join and participate in clubs!"
+                        : isParent(role)
+                          ? "manage your child's club activity!"
+                          : "create and manage clubs!"))
+                : "Join or create a club for it to show up here!"}
+            </Text>
+          </>
+        )}
+      </View>
+      <ScrollView>
+        {!isParent(role) && school && !noClubs && (
+          <>
+            {/*  <HomeDashboard />*/}
+            <Pager
+              pages={[
+                <HomeDashboard />,
+                <View>
+                  <Text style={{ color: COLORS.textPrimary }}>Blud</Text>
+                </View>,
+              ]}
+            />
+            <View style={styles.cardsContainer}>
+              <SectionList
+                sections={DATA}
+                keyExtractor={(item) => item._id.toString()}
+                contentContainerStyle={{ padding: 16 }}
+                renderItem={({ item }) => (
+                  <View>
+                    <ClubCard
+                      onPress={() => routeToManager(item._id)}
+                      club={item}
+                      joinCard={false}
+                      canManage={
+                        !currentUser.userData.requestedClubs
+                          .map((club) => {
+                            if (!club) return null;
+                            return typeof club === "string" ? club : club._id;
+                          })
+                          .includes(item._id)
+                      }
+                    />
+                  </View>
+                )}
+                renderSectionHeader={({ section: { title } }) => (
+                  <>
+                    <View style={styles.divSpace}>
+                      <Text style={styles.divTitle}>{title}</Text>
+                      <Divider />
+                    </View>
+                  </>
+                )}
+                horizontal={false} //
+                scrollEnabled={true}
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+          </>
+        )}
+        {isParent(role) && (
+          <>
+            <Pager
+              pages={[
+                <HomeDashboard />,
+                <View>
+                  <Text style={{ color: COLORS.textPrimary }}>Blud</Text>
+                </View>,
+              ]}
+            />
+            <View style={styles.cardsContainer}>
+              <SectionList
+                sections={PARENT_DATA}
+                keyExtractor={(item) => item._id.toString()}
+                contentContainerStyle={{ padding: 16 }}
+                renderItem={({ item }) => (
+                  <View>
+                    <ChildCard
+                      userPFP={item.profilePicture}
+                      name={item.fullName}
+                      email={item.email}
+                      onPress={() => {}}
+                      approved={currentUser.userData.approvedChildren
+                        .map((c) => c?._id)
+                        .includes(item._id)}
+                    />
+                  </View>
+                )}
+                renderSectionHeader={({ section: { title } }) => (
+                  <>
+                    <View style={styles.divSpace}>
+                      <Text style={styles.divTitle}>{title}</Text>
+                      <Divider />
+                    </View>
+                  </>
+                )}
+                horizontal={false} //
+                scrollEnabled={true}
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+          </>
+        )}
+      </ScrollView>
       <View
         style={{
           right: 0,
@@ -218,56 +338,15 @@ export default function index() {
           bottom: 60,
         }}
       >
-        <NewFAB
-          clubPress={handleClubPress}
-          announcementPress={handleAnnouncementPress}
-          eventPress={handleEventPress}
-        />
+        {school && hasAdminAccess(role) && (
+          <NewFAB
+            clubPress={handleClubPress}
+            announcementPress={handleAnnouncementPress}
+            eventPress={handleEventPress}
+          />
+        )}
       </View>
       {/* Text and arrow if the user is not in a school */}
-
-      {(!currentUser.userData.school || noClubs) && (
-        <>
-          <Text
-            style={{
-              fontFamily: "InterSemiBold",
-              marginHorizontal: 20,
-              marginVertical: 20,
-              fontSize: 32,
-              color: COLORS.textPrimary,
-              textAlign: "center",
-            }}
-          >
-            {!currentUser.userData.school
-              ? "Tap the school icon " +
-                (role === "headAdmin"
-                  ? " to create a school!"
-                  : "and join a school to " +
-                    (role === "student"
-                      ? "join and participate in clubs!"
-                      : "create and manage clubs!"))
-              : "Join or create a club for it to show up here!"}
-          </Text>
-
-          <View
-            style={{
-              alignItems: "flex-end",
-              justifyContent: "flex-end",
-              paddingRight: 22,
-              paddingBottom: 70,
-              flex: 1,
-            }}
-          >
-            {!currentUser.userData.school && (
-              <AntDesign
-                name="arrow-down"
-                size={40}
-                color={COLORS.textPrimary}
-              />
-            )}
-          </View>
-        </>
-      )}
 
       {/*{(currentUser.userData.role === "administrator" ||
         currentUser.userData.role === "superAdmin") &&
@@ -290,6 +369,21 @@ export default function index() {
             </TouchableOpacity>
           </View>
         )}*/}
+      {
+        <View
+          style={{
+            alignItems: "flex-end",
+            justifyContent: "flex-end",
+            paddingRight: 22,
+            paddingBottom: 70,
+            flex: 1,
+          }}
+        >
+          {!currentUser.userData.school && (
+            <AntDesign name="arrow-down" size={40} color={COLORS.textPrimary} />
+          )}
+        </View>
+      }
       {school && (
         <BottomSheet
           ref={bottomSheetRef}
@@ -305,7 +399,6 @@ export default function index() {
           backgroundComponent={CustomBackground}
           keyboardBehavior="interactive"
           keyboardBlurBehavior="restore"
-          footerComponent={bottomSheetMode === 1 ? renderFooter : undefined}
         >
           <BottomSheetScrollView style={{ paddingBottom: 30 }}>
             {bottomSheetMode === 0 && (
@@ -323,7 +416,21 @@ export default function index() {
               />
             )}
             {bottomSheetMode === 2 && (
-              <CreateEvent back={() => handleCloseSheet()} key={refreshKey} />
+              <CreateEvent
+                back={() => handleCloseSheet()}
+                key={refreshKey}
+                error={() => {
+                  Toast.show({
+                    type: "error",
+                    text1: "Event Create Failed",
+                    text2: "Missing Required Fields",
+                    position: "top",
+                    visibilityTime: 2500,
+                    topOffset: 50,
+                  });
+                  handleHaptics();
+                }}
+              />
             )}
           </BottomSheetScrollView>
         </BottomSheet>

@@ -33,9 +33,10 @@ export const createSchool = mutation({
 
 export const getSchoolData = query({
   args: {
-    schoolId: v.id("schools"),
+    schoolId: v.optional(v.id("schools")),
   },
   handler: async (ctx, args) => {
+    if (!args.schoolId) return;
     const school = await ctx.db.get(args.schoolId);
 
     if (!school) throw new Error("School not found");

@@ -3,6 +3,7 @@ import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/create.styles";
 import { useMutation } from "convex/react";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -13,6 +14,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import GradientButton from "./gradientButton";
 import StylizedInput from "./stylizedInput";
 
@@ -21,14 +23,34 @@ export default function JoinSchool() {
   const currentUser = useUserData();
   const userJoinSchool = useMutation(api.users.joinSchool);
   const router = useRouter();
+  const handleHaptics = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  };
   const handelJoinSchool = async (joinCode: string) => {
     try {
       await userJoinSchool({ joinCode: joinCode });
 
       console.log("successfully joined school with code ", code);
       router.push("/(tabs)/browse");
+      Toast.show({
+        type: "success",
+        text1: "School Joined!",
+
+        position: "top",
+        visibilityTime: 2500,
+        topOffset: 50,
+      });
+      handleHaptics();
     } catch (error) {
-      throw new Error("Join School failed");
+      Toast.show({
+        type: "error",
+        text1: "School Join Failed",
+        text2: "Ensure that the join code is valid",
+        position: "top",
+        visibilityTime: 2500,
+        topOffset: 50,
+      });
+      handleHaptics();
     }
   };
 

@@ -18,6 +18,12 @@ type props = {
   global?: boolean;
 };
 
+type dProps = {
+  event?: Doc<"events">;
+
+  onPress?: () => void;
+};
+
 type bProps = {
   category: string;
   name: string;
@@ -114,6 +120,65 @@ export default function EventCard({
               </Text>
             )}
           </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+export function DashboardEventCard({
+  event,
+
+  onPress,
+}: dProps) {
+  if (!event) return <Text>Event not found!</Text>;
+  const club = useClubData(event.clubId);
+
+  return (
+    <Pressable onPress={onPress}>
+      <View style={styles.container}>
+        <View
+          style={[
+            styles.colorBar,
+            { backgroundColor: getEventTagColor(event.eventType) },
+          ]}
+        />
+        <View>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text
+              style={[
+                styles.eventType,
+                {
+                  color: getEventTagColor(event.eventType),
+                  fontSize: 20,
+                  paddingRight: 8,
+                },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {formatCamelCase(event.eventType)}
+              {" - "}
+              {
+                <Text style={{ color: COLORS.textPrimary }}>
+                  {club?.name + " "}
+                </Text>
+              }
+            </Text>
+          </View>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[
+              {
+                fontSize: 14,
+                color: COLORS.textSecondary,
+                fontFamily: "InterSemiBold",
+              },
+            ]}
+          >
+            {event.title}
+          </Text>
         </View>
       </View>
     </Pressable>

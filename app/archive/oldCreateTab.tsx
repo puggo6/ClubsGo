@@ -1,4 +1,4 @@
-import GradientButton from "@/components/gradientButton";
+/*import GradientButton from "@/components/gradientButton";
 import Tag, { availableTags } from "@/components/tag";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
@@ -174,7 +174,11 @@ export default function CreateSceen() {
                     />
                   ))}
                 </View>
-                {/* Placeholder render to get the expanded height (for reanimated expansion)*/}
+                */
+{
+  /* Placeholder render to get the expanded height (for reanimated expansion)*/
+}
+/*
                 <View
                   style={{ position: "absolute", opacity: 0, zIndex: -1 }}
                   onLayout={onLayout}

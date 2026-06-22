@@ -1,3 +1,4 @@
+import { SmallMemberCard } from "@/components/memberCard";
 import Message from "@/components/message";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
@@ -37,13 +38,23 @@ export default function inGroupchat() {
   dayjs.extend(isToday);
   const messages = groupchat?.messages;
   const members = groupchat?.members;
+  const school = currentUser?.userData.school;
+  let fullSchool = undefined;
+  if (school?._id) {
+    fullSchool = useQuery(api.schools.getSchoolData, { schoolId: school?._id });
+  }
   const sendMessage = useMutation(api.groupChats.sendMessage);
   const [text, setText] = useState("");
+  const usersNotInChat = groupchat?.members
+    ?.filter((u) => u.user?.currentChat !== groupchatId)
+    .map((u) => u.user?._id)
+    .filter((id): id is Id<"users"> => !!id);
   const handleSend = () => {
     sendMessage({
       currentDate: dayjs().toISOString(),
       content: text,
       groupChat: chatId,
+      usersNotInChat,
     });
     setText("");
     Keyboard.dismiss();
@@ -220,7 +231,49 @@ export default function inGroupchat() {
         }}
       >
         <BottomSheetView>
-          <></>
+          <>
+            <Text
+              style={{
+                fontSize: 24,
+                fontFamily: "PoppinsBold",
+                color: COLORS.textPrimary,
+                textAlign: "center",
+              }}
+            >
+              Current Members:
+            </Text>
+            <View style={{ flex: 1 }}>
+              <FlatList
+                data={groupchat?.members}
+                keyExtractor={(item) => item.toString()}
+                numColumns={2}
+                renderItem={({ item }) => {
+                  const u = fullSchool?.users.find(
+                    (u) => u?._id === item.user?._id
+                  );
+                  return (
+                    <View style={{ margin: 5 }}>
+                      <SmallMemberCard
+                        userPFP={u?.profilePicture}
+                        name={u?.fullName ?? ""}
+                        email={""}
+                        isMember={
+                          (u?.role === "student"
+                            ? true
+                            : u?._id &&
+                              currentUser.userData.school?.adminList?.includes(
+                                u?._id
+                              )) ?? false
+                        }
+                        onPress={() => {}}
+                        approvalCard={false}
+                      />
+                    </View>
+                  );
+                }}
+              />
+            </View>
+          </>
         </BottomSheetView>
       </BottomSheet>
     </View>

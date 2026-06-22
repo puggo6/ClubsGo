@@ -11,7 +11,7 @@ export default function TabLayout() {
     currentUser?.userData.role == "superAdmin" || !currentUser?.userData.school;
   const inSchool = Boolean(currentUser?.userData.school);
   const showCreate = currentUser?.userData.role != "student" && inSchool;
-
+  const newMessage = (currentUser?.userData.newMessages?.length ?? 0) > 0;
   return (
     <View style={{ backgroundColor: COLORS.background, flex: 1 }}>
       <Tabs
@@ -71,26 +71,28 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <>
                 <Entypo name="chat" size={size} color={color} />
-                <View
-                  style={{
-                    position: "absolute",
-                    alignItems: "flex-end",
-                    justifyContent: "flex-start",
-                    top: -1,
-                    right: -1,
-                    width: "100%",
-                    height: "100%",
-                  }}
-                >
+                {newMessage && (
                   <View
                     style={{
-                      aspectRatio: 1,
-                      width: 8,
-                      backgroundColor: COLORS.accentB,
-                      borderRadius: 100,
+                      position: "absolute",
+                      alignItems: "flex-end",
+                      justifyContent: "flex-start",
+                      top: -1,
+                      right: -1,
+                      width: "100%",
+                      height: "100%",
                     }}
-                  />
-                </View>
+                  >
+                    <View
+                      style={{
+                        aspectRatio: 1,
+                        width: 8,
+                        backgroundColor: COLORS.accentB,
+                        borderRadius: 100,
+                      }}
+                    />
+                  </View>
+                )}
               </>
             ),
           }}

@@ -44,46 +44,60 @@ export default function RoleSelect() {
             To continue, select one of the following roles.
           </Text>
         </View>
-
-        <View style={styles.roleButtons}>
-          <TouchableOpacity
-            style={[
-              styles.roleButton,
-              userRole === "student" ? {} : { backgroundColor: "#6b7c93" },
-            ]}
-            onPress={() => setUserRole("student")}
-          >
-            <Text style={[styles.roleButtonText]}>Student</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.roleButton,
-              userRole === "administrator"
-                ? {}
-                : { backgroundColor: "#6b7c93" },
-            ]}
-            onPress={() => setUserRole("administrator")}
-          >
-            <Text style={[styles.roleButtonText]}>Admin</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.roleButton,
-              userRole === "superAdmin" ? {} : { backgroundColor: "#6b7c93" },
-            ]}
-            onPress={() => setUserRole("superAdmin")}
-          >
-            <Text style={[styles.roleButtonText]}>Head Admin</Text>
-          </TouchableOpacity>
+        <View style={{ flexDirection: "column" }}>
+          <View style={styles.roleButtons}>
+            <TouchableOpacity
+              style={[
+                styles.roleButton,
+                userRole === "student" ? {} : { backgroundColor: "#6b7c93" },
+              ]}
+              onPress={() => setUserRole("student")}
+            >
+              <Text style={[styles.roleButtonText]}>Student</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.roleButton,
+                userRole === "parent" ? {} : { backgroundColor: "#6b7c93" },
+              ]}
+              onPress={() => setUserRole("parent")}
+            >
+              <Text style={[styles.roleButtonText]}>Parent</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.roleButtons}>
+            <TouchableOpacity
+              style={[
+                styles.roleButton,
+                userRole === "administrator"
+                  ? {}
+                  : { backgroundColor: "#6b7c93" },
+              ]}
+              onPress={() => setUserRole("administrator")}
+            >
+              <Text style={[styles.roleButtonText]}>Admin</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.roleButton,
+                userRole === "superAdmin" ? {} : { backgroundColor: "#6b7c93" },
+              ]}
+              onPress={() => setUserRole("superAdmin")}
+            >
+              <Text style={[styles.roleButtonText]}>Head Admin</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.roleDescription}>
           You will be able to
           <Text style={{ fontFamily: "PoppinsBold" }}>
             {userRole === "student"
               ? " browse and join school clubs"
-              : userRole === "administrator"
-                ? " create and manage school clubs"
-                : " create schools and manage school activity"}
+              : userRole === "parent"
+                ? " manage your child's schedule and club activity"
+                : userRole === "administrator"
+                  ? " create and manage school clubs"
+                  : " create schools and manage school activity"}
           </Text>
         </Text>
         <View style={styles.continue}>

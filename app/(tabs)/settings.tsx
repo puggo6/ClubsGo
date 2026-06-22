@@ -1,6 +1,7 @@
 import { LargeMonochromeButton } from "@/components/gradientButton";
 import LoadingScreen from "@/components/loadingScreen";
 import SettingsButton from "@/components/settingsButton";
+import { isHeadAdmin, isParent, isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
@@ -18,7 +19,7 @@ export default function profile() {
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const currentUser = useUserData();
-
+  const role = currentUser?.userData.role;
   const cleanClubs = useMutation(api.clubs.removeDeletedUsersFromClubs);
   const cleanEvents = useMutation(api.clubs.removeDeletedEventsFromClubs);
   const cleanUsers = useMutation(api.schools.removeDeletedUsersFromSchools);
@@ -95,11 +96,13 @@ export default function profile() {
       <Text style={styles.infoText}>{currentUser.fullName}</Text>
       <Text style={styles.infoSubText}>
         {currentUser
-          ? currentUser.userData.role == "student"
+          ? isStudent(role)
             ? "Student"
-            : currentUser.userData.role == "administrator"
-              ? "Administrator"
-              : "Head Administrator"
+            : isHeadAdmin(role)
+              ? "Head Administrator"
+              : isParent(role)
+                ? "Parent"
+                : "Administrator"
           : ""}
       </Text>
 
@@ -117,6 +120,20 @@ export default function profile() {
       >
         <FontAwesome6 name="school" size={32} color={COLORS.textSecondary} />
       </SettingsButton>
+      {/* add red dot notification indicatior */}
+      {isStudent(role) && (
+        <SettingsButton
+          onPress={() => router.push("/settings/parents")}
+          title="Parents"
+          screenWidth={screenWidth}
+        >
+          <FontAwesome6
+            name="user-group"
+            size={32}
+            color={COLORS.textSecondary}
+          />
+        </SettingsButton>
+      )}
       <View style={{ height: 40 }} />
       <LargeMonochromeButton title="Sign Out" onPress={() => signOut()} />
     </View>

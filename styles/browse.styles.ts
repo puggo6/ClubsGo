@@ -21,10 +21,17 @@ export const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 40,
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     marginBottom: 0,
     marginTop: 0,
     fontFamily: "PoppinsBold",
+  },
+  subHeaderTitle: {
+    fontSize: 40,
+    color: COLORS.textPrimary,
+    marginBottom: 0,
+    marginTop: 0,
+    fontFamily: "PoppinsSemiBold",
   },
   subTitle: {
     fontFamily: "OpenSansRegular",

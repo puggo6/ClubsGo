@@ -7,7 +7,11 @@ export default defineSchema({
     fullName: v.string(),
     email: v.string(),
 
-    role: v.optional(v.string()), // student, admininstrator, or superAdmin in the code. this isnt hardcoded due to TypeSciript conflictions
+    role: v.optional(v.string()), // student, parent, admininstrator, or superAdmin in the code. this isnt hardcoded due to TypeSciript conflictions
+    requestedParents: v.optional(v.array(v.id("users"))),
+    approvedParents: v.optional(v.array(v.id("users"))),
+    requestedChildren: v.optional(v.array(v.id("users"))), // parent users can add other student users as their child
+    approvedChildren: v.optional(v.array(v.id("users"))), // parent users can add other student users as their child
     approvedAdmin: v.optional(v.boolean()), //true = approved, false = not approved, undefined = user isnt an admin
     gradeLevel: v.optional(v.number()),
     school: v.optional(v.id("schools")),
@@ -17,6 +21,7 @@ export default defineSchema({
     numClubs: v.number(),
 
     chats: v.optional(v.array(v.id("groupChats"))),
+    newMessages: v.optional(v.array(v.id("groupChats"))),
     currentChat: v.optional(v.id("groupChats")),
     eventList: v.optional(v.array(v.id("events"))),
     profilePicture: v.string(),
@@ -109,7 +114,8 @@ export default defineSchema({
   }).index("by_club", ["clubId"]),
 
   announcements: defineTable({
-    clubId: v.id("clubs"),
+    clubId: v.optional(v.id("clubs")),
+    global: v.optional(v.boolean()),
     title: v.optional(v.string()),
     message: v.string(),
     postedBy: v.id("users"),

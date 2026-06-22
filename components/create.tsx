@@ -26,7 +26,6 @@ import {
   View,
 } from "react-native";
 import { ScrollView, Switch, TextInput } from "react-native-gesture-handler";
-import PagerView from "react-native-pager-view";
 import { DatePickerModal, TimePickerModal } from "react-native-paper-dates";
 import Animated, {
   useAnimatedStyle,
@@ -151,7 +150,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
   const currentDate = String(dayjs());
 
   const [restrictedHeight, setRestrictedHeight] = useState(50);
-
+  const [height, setHeight] = useState(0);
   let sportsTeam =
     selectedTags[0] === "Sports" ||
     selectedTags[1] === "Sports" ||
@@ -169,13 +168,6 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     };
   });
 
-  const pagerRef = useRef<PagerView>(null);
-
-  const [step, setStep] = useState(0);
-  const MAX_STEP = 2;
-  const nextStep = () => (step < MAX_STEP ? setStep((prev) => prev + 1) : {});
-  const prevStep = () => (step > 0 ? setStep((prev) => prev - 1) : {});
-
   const restrictedAnimatedStyle = useAnimatedStyle(() => {
     const animatedHeight = restricted
       ? withTiming(restrictedHeight)
@@ -184,7 +176,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
       height: animatedHeight,
     };
   });
-  const [height, setHeight] = useState(0);
+
   const onLayout = (event: LayoutChangeEvent) => {
     const layoutHeight = event.nativeEvent.layout.height;
 

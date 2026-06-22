@@ -78,12 +78,17 @@ export const sendMessage = mutation({
     content: v.string(),
     currentDate: v.string(),
     groupChat: v.id("groupChats"),
+    usersNotInChat: v.optional(v.array(v.id("users"))),
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
     const group = await ctx.db.get(args.groupChat);
     const newMembers = group?.members.map((m) =>
       m.user === currentUser._id ? { ...m, lastRead: args.content ?? "" } : m
+    );
+    if (!args.usersNotInChat) return;
+    const usersNotInChat = await Promise.all(
+      args.usersNotInChat.map((u) => ctx.db.get(u))
     );
     await ctx.db.patch(args.groupChat, {
       messages: [
@@ -96,6 +101,12 @@ export const sendMessage = mutation({
       ],
       members: newMembers,
     });
+    for (const user of usersNotInChat) {
+      if (!user) return;
+      await ctx.db.patch(user._id, {
+        newMessages: [...(user.newMessages ?? []), args.groupChat],
+      });
+    }
   },
 });
 
@@ -118,6 +129,7 @@ export const handleOpenChat = mutation({
     });
     await ctx.db.patch(currentUser._id, {
       currentChat: args.groupChat,
+      newMessages: currentUser.newMessages?.filter((c) => c !== args.groupChat),
     });
   },
 });

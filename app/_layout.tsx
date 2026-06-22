@@ -2,7 +2,7 @@ import { toastConfig } from "@/components/globalToast";
 import { COLORS } from "@/constants/theme";
 import ClerkAndConvexProvider from "@/providers/ClerkAndConvexProvider";
 import { useFonts } from "expo-font";
-import { View } from "react-native";
+import { LogBox, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   SafeAreaProvider,
@@ -10,7 +10,9 @@ import {
 } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import InitialLayout from "../components/initialLayout";
+
 export default function RootLayout() {
+  LogBox.ignoreAllLogs(true);
   const fontsLoaded = useFonts({
     InterLight: require("../assets/fonts/Inter_18pt-Light.ttf"),
     InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),

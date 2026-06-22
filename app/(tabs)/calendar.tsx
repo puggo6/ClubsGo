@@ -1,9 +1,10 @@
 import Calendar from "@/components/calendar";
 import EventCard from "@/components/eventCard";
 import EventListView from "@/components/eventListView";
+import { isHeadAdmin, isParent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/calendar.styles";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,20 +23,48 @@ import Toast from "react-native-toast-message";
 
 export default function calendar() {
   const currentUser = useUserData();
-  const isHeadAdmin = currentUser?.userData.role === "headAdmin";
+
+  const role = currentUser?.userData.role;
   let masterClubs = currentUser?.userData.clubs ?? [];
   const insets = useSafeAreaInsets();
-  if (isHeadAdmin && currentUser.userData.school?.clubList)
-    masterClubs =
-      useQuery(api.clubs.getClubList, {
-        clubList: currentUser.userData.school?.clubList,
-      }) ?? [];
 
+  const fullSchoolClubs =
+    useQuery(api.clubs.getClubList, {
+      clubList: currentUser?.userData.school?.clubList ?? [],
+    }) ?? [];
+  if (isHeadAdmin(role)) {
+    masterClubs = fullSchoolClubs;
+  }
+
+  const childrenIds = currentUser?.userData?.approvedChildren
+    ?.map((c) => c?._id)
+    .filter(Boolean) as Id<"users">[];
+
+  const rawChildClubs = useQuery(api.clubs.getChildrensClubs, {
+    userList: childrenIds ?? [],
+  });
+  const childClubs = rawChildClubs?.map((c) => c?.club);
+
+  if (isParent(role) && childClubs) {
+    masterClubs = childClubs;
+  }
   const clubIds = masterClubs.flatMap((club) => (club ? club.eventList : []));
-  const eventIds = [...clubIds, ...(currentUser?.userData.eventList ?? [])];
+  let uEventIds = [...clubIds, ...(currentUser?.userData.eventList ?? [])];
+  let eventIds: typeof uEventIds = [];
+  if (isParent(role)) {
+    const clubIds = masterClubs.flatMap((club) => (club ? club.eventList : []));
+    eventIds = [...clubIds];
+    for (const child of currentUser?.userData.approvedChildren ?? []) {
+      eventIds = [...eventIds, ...(child?.eventList ?? [])];
+    }
+  } else {
+    eventIds = uEventIds;
+  }
+  console.log(eventIds, "eventId");
   const events = useQuery(api.events.getManyEvents, {
     eventIds: eventIds,
   });
+  console.log(events, "events");
   const handleHaptics = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
@@ -92,7 +121,6 @@ export default function calendar() {
 
   const [pressedDay, setPressedDay] = useState<Dayjs | undefined>(undefined);
   const [onCalendar, setOnCalendar] = useState(false);
-  const [currentDate, setCurrentDate] = useState(dayjs());
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 

@@ -518,11 +518,10 @@ export default function clubManagement() {
             inClub={true}
             onPress={handleEditEvent}
           />
-          {!events ||
-            ((events.length == 0 ||
-              dayjs(lastEvent.dateNumber).isBefore(currentDate)) && (
-              <Text style={styles.infoTitle}>No Upcoming Events!</Text>
-            ))}
+          {(events.length == 0 ||
+            dayjs(lastEvent.dateNumber).isBefore(currentDate)) && (
+            <Text style={styles.infoTitle}>No Upcoming Events!</Text>
+          )}
         </View>
       )}
     </View>
@@ -1135,7 +1134,13 @@ export default function clubManagement() {
                 }}
                 style={{ alignSelf: "center" }}
               >
-                <Text style={{ fontSize: 14, color: COLORS.textSecondary }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: COLORS.textSecondary,
+                    textDecorationLine: "underline",
+                  }}
+                >
                   View All Club Events
                 </Text>
               </TouchableOpacity>

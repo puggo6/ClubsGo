@@ -5,7 +5,7 @@ import { useClubData } from "@/hooks/useClubData";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/clubManagement.styles";
 import { Ionicons } from "@expo/vector-icons";
-import { useConvex, useMutation } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import dayjs from "dayjs";
 import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
@@ -29,7 +29,7 @@ import Animated, {
 } from "react-native-reanimated";
 import EventCard from "./eventCard";
 import { EventListMap } from "./eventListView";
-import GradientButton from "./gradientButton";
+import { SizeGradientButton } from "./gradientButton";
 import { LargeStylizedInput } from "./stylizedInput";
 
 type props = {
@@ -61,6 +61,20 @@ export default function CreateAnnouncement({
   const [selectedClub, setSelectedClub] = useState<Id<"clubs"> | undefined>(
     undefined
   );
+  const isHeadAdmin = currentUser?.userData.role === "headAdmin";
+  let masterClubs = currentUser?.userData.clubs ?? [];
+
+  if (isHeadAdmin && currentUser.userData.school?.clubList)
+    masterClubs =
+      useQuery(api.clubs.getClubList, {
+        clubList: currentUser.userData.school?.clubList,
+      }) ?? [];
+
+  const clubIds = masterClubs.flatMap((club) => (club ? club.eventList : []));
+  const eventIds = [...clubIds, ...(currentUser?.userData.eventList ?? [])];
+  const events = useQuery(api.events.getManyEvents, {
+    eventIds: eventIds,
+  });
   const handleEventAdd = (event: Doc<"events">) => {
     setSelectedEvent(event);
     browsingEvents.value = false;
@@ -163,6 +177,9 @@ export default function CreateAnnouncement({
   const createNewAnnouncement = useMutation(
     api.announcements.createAnnouncement
   );
+  const createGlobalAnnouncement = useMutation(
+    api.announcements.createGlobAnnouncement
+  );
   const generateUploadUrl = useMutation(api.announcements.generateUploadUrl);
   const convex = useConvex();
 
@@ -207,14 +224,26 @@ export default function CreateAnnouncement({
     const datePosted = String(dayjs());
     const image = imageStorageId;
     const event = selectedEvent?._id;
-    if (inputClub || selectedClub) {
-      await createNewAnnouncement({
-        clubId: (selectedClub ?? inputClub)!,
-        message: AnnMessage,
-        datePosted: datePosted,
-        image: image,
-        event: event,
-      });
+    if (inputClub || selectedClub || !local) {
+      if (local) {
+        console.log("create a 1");
+        await createNewAnnouncement({
+          clubId: (selectedClub ?? inputClub)!,
+          message: AnnMessage,
+          datePosted: datePosted,
+          image: image,
+          event: event,
+        });
+      } else {
+        console.log("create a 2");
+        await createGlobalAnnouncement({
+          clubId: (selectedClub ?? inputClub)!,
+          message: AnnMessage,
+          datePosted: datePosted,
+          image: image,
+          event: event,
+        });
+      }
     }
     back();
   };
@@ -235,9 +264,11 @@ export default function CreateAnnouncement({
           onLayout={onLayout}
         >
           <EventListMap
-            events={club?.eventList?.filter(
-              (e): e is Doc<"events"> => e !== null
-            )}
+            events={
+              events
+                ? events.filter((e): e is Doc<"events"> => e !== null)
+                : undefined
+            }
             inClub={true}
             onPress={handleEventAdd}
             inCreation={false}
@@ -496,7 +527,17 @@ export default function CreateAnnouncement({
             />
           </View>
         )}
-        {inputClub && <GradientButton onPress={handleCreate} title="Create" />}
+        {/*inputClub && <GradientButton onPress={handleCreate} title="Create" />*/}
+        <View style={{ paddingHorizontal: 50, marginBottom: 40 }}>
+          <SizeGradientButton
+            onPress={handleCreate}
+            title="Create"
+            width={30}
+            height={7}
+            horizontalPadding={20}
+            restricted={!inputClub || inputClub === undefined}
+          />
+        </View>
         <View style={{ marginVertical: !inputClub ? 80 : 0 }} />
       </View>
     </TouchableWithoutFeedback>
