@@ -47,6 +47,7 @@ export default function CreateSchool() {
           onChangeText={setName}
           placeholder="EX: James Smith High School"
           dark={false}
+          wordCapitalize={true}
         />
         <StylizedInput
           label="Shortened School Name"
@@ -54,6 +55,7 @@ export default function CreateSchool() {
           onChangeText={setShortName}
           placeholder="EX: JSHS"
           dark={false}
+          capitalize={true}
         />
       </View>
       <GradientButton title="Create" onPress={() => handleCreateSchool()} />

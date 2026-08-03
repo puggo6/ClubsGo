@@ -93,7 +93,7 @@ export default function profile() {
         source={{ uri: currentUser.profilePicture }}
         style={styles.userAvatar}
       />
-      <Text style={styles.infoText}>{currentUser.fullName}</Text>
+      <Text style={styles.infoText}>{currentUser.userData.fullName}</Text>
       <Text style={styles.infoSubText}>
         {currentUser
           ? isStudent(role)

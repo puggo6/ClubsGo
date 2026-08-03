@@ -75,24 +75,24 @@ export default function index() {
   const [bottomSheetMode, setBottomMode] = useState<number>(0); // 0 for club creation, 1 for announcement, 2 for event
   const pendingClubList = useMemo(() => {
     return (currentUser?.userData.requestedClubs ?? []).filter(
-      (c): c is NonNullable<typeof c> => c !== null
+      (c): c is NonNullable<typeof c> => c !== null,
     );
   }, [currentUser?.userData.requestedClubs]);
 
   const reqChildList = useMemo(() => {
     return (currentUser?.userData.requestedChildren ?? []).filter(
-      (c): c is NonNullable<typeof c> => c !== null
+      (c): c is NonNullable<typeof c> => c !== null,
     );
   }, [currentUser?.userData.requestedChildren]);
   const appChildList = useMemo(() => {
     return (currentUser?.userData.approvedChildren ?? []).filter(
-      (c): c is NonNullable<typeof c> => c !== null
+      (c): c is NonNullable<typeof c> => c !== null,
     );
   }, [currentUser?.userData.approvedChildren]);
 
   const clubList = useMemo(() => {
     return (currentUser?.userData.clubs ?? []).filter(
-      (c): c is NonNullable<typeof c> => c !== null
+      (c): c is NonNullable<typeof c> => c !== null,
     );
   }, [currentUser?.userData.clubs]);
   const [clubData, setClubData] = useState<typeof clubList>(clubList);
@@ -139,7 +139,7 @@ export default function index() {
         </View>
       </BottomSheetFooter>
     ),
-    []
+    [],
   );
   if (!currentUser) return <LoadingScreen />;
   if (currentUser.id === "not-in-db") {

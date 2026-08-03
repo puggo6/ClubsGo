@@ -222,4 +222,30 @@ export const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     alignSelf: "center",
   },
+  inputsContainer: {
+    width: "100%",
+    flex: 1,
+    padding: 20,
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    alignItems: "stretch",
+    gap: 12,
+  },
+  saveButton: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  pressable: {
+    backgroundColor: COLORS.publicGreen,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: COLORS.white,
+    fontWeight: "600",
+    fontSize: 16,
+  },
 });

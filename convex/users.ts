@@ -45,6 +45,21 @@ export const createUser = mutation({
   },
 });
 
+export const updateUserProfile = mutation({
+  args: {
+    username: v.optional(v.string()),
+    fullName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    await ctx.db.patch(currentUser._id, {
+      username: args.username ? args.username : currentUser.username,
+      fullName: args.fullName ? args.fullName : currentUser.fullName,
+    });
+  },
+});
+
 export const joinClub = mutation({
   args: {
     clubId: v.id("clubs"),
@@ -197,11 +212,11 @@ export const getUserData = query({
       : null;
 
     const clubs = await Promise.all(
-      currentUser.clubs.map((clubId) => ctx.db.get(clubId))
+      currentUser.clubs.map((clubId) => ctx.db.get(clubId)),
     );
     const requestedClubs = currentUser.requestedClubs
       ? await Promise.all(
-          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId))
+          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId)),
         )
       : [];
     const chats = currentUser.chats
@@ -249,11 +264,11 @@ export const getSpecificUser = query({
       : null;
 
     const clubs = await Promise.all(
-      currentUser.clubs.map((clubId) => ctx.db.get(clubId))
+      currentUser.clubs.map((clubId) => ctx.db.get(clubId)),
     );
     const requestedClubs = currentUser.requestedClubs
       ? await Promise.all(
-          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId))
+          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId)),
         )
       : [];
     return {
@@ -302,7 +317,7 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
 }
 
 export const leaveSchool = mutation({
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const currentUser = await getAuthenticatedUser(ctx);
     if (!currentUser) throw new Error("User not found");
 
@@ -311,10 +326,10 @@ export const leaveSchool = mutation({
     const school = await ctx.db.get(currentUser.school);
     const filteredUsers = school?.userList.filter((u) => u !== currentUser._id);
     const filteredAdmins = (school?.adminList ?? []).filter(
-      (u) => u !== currentUser._id
+      (u) => u !== currentUser._id,
     );
     const filteredPending = (school?.pendingAdminList ?? []).filter(
-      (u) => u !== currentUser._id
+      (u) => u !== currentUser._id,
     );
     if (!school?._id) return;
 
@@ -337,10 +352,10 @@ export const leaveClub = mutation({
     const currentUser = await getAuthenticatedUser(ctx);
     const club = await ctx.db.get(args.clubId);
     const updatedMembers = club?.members.filter(
-      (member) => member.userId !== currentUser._id
+      (member) => member.userId !== currentUser._id,
     );
     const updatedClubs = currentUser.clubs.filter(
-      (listId) => listId !== args.clubId
+      (listId) => listId !== args.clubId,
     );
 
     await ctx.db.patch(args.clubId, {
@@ -369,7 +384,7 @@ export const cleanUserFields = mutation({
         let filteredReqClubs: GenericId<"clubs">[] = [];
         if (realUser?.requestedClubs)
           filteredReqClubs = realUser?.requestedClubs.filter((c) =>
-            validClubs.has(c)
+            validClubs.has(c),
           );
         await ctx.db.patch(user, {
           clubs: filteredClubs,

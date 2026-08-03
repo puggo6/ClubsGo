@@ -147,3 +147,18 @@ export const getImageUrl = query({
     return await ctx.storage.getUrl(args.storageId);
   },
 });
+
+export const setPinnedStatus = mutation({
+  args: {
+    announcementId: v.id("announcements"),
+    status: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const announcement = await ctx.db.get(args.announcementId);
+    if (!announcement) throw new Error("announcement not found");
+
+    await ctx.db.patch(args.announcementId, {
+      pinned: args.status,
+    });
+  },
+});

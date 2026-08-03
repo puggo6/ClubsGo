@@ -59,20 +59,20 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
   const [endTimePicker, setEndTimePicker] = useState(false);
 
   const [selectedTags, setSelectedTags] = useState<string[]>(
-    fullClub?.tags ?? []
+    fullClub?.tags ?? [],
   );
   const initialTags = availableTags.filter(
     (t) =>
       t !== fullClub?.tags[0] &&
       t !== fullClub?.tags[1] &&
-      t !== fullClub?.tags[2]
+      t !== fullClub?.tags[2],
   );
   const [freeTags, setFreeTags] = useState<string[]>(initialTags);
 
   const [expanded, setExpanded] = useState(fullClub?.restricted ?? false);
 
   const [prereqs, setPrereqs] = useState(
-    fullClub?.restricted2?.prerequisites ?? [""]
+    fullClub?.restricted2?.prerequisites ?? [""],
   );
 
   const handleChange = (text: string, index: number) => {
@@ -93,33 +93,33 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     ? fullClub?.restricted1?.tryoutDate.map((d) => new Date(d))
     : undefined;
   const [appDescription, setAppDescription] = useState(
-    fullClub?.restricted0?.applicationDesc ?? ""
+    fullClub?.restricted0?.applicationDesc ?? "",
   );
   const [appLink, setAppLink] = useState(
-    fullClub?.restricted0?.applicationLink ?? ""
+    fullClub?.restricted0?.applicationLink ?? "",
   );
   const [hasDeadline, setHasDeadline] = useState(
-    fullClub?.restricted0?.hasDeadline ?? false
+    fullClub?.restricted0?.hasDeadline ?? false,
   );
   const [deadline, setDeadline] = useState<string | undefined>(
-    fullClub?.restricted0?.applicationDeadline ?? undefined
+    fullClub?.restricted0?.applicationDeadline ?? undefined,
   );
   const [tryoutDesc, setTryoutDesc] = useState(
-    fullClub?.restricted1?.tryoutDesc ?? ""
+    fullClub?.restricted1?.tryoutDesc ?? "",
   );
   const [tryoutDate, setTryoutDate] = React.useState<Date[] | undefined>(
-    tryoutDatesFix ?? undefined
+    tryoutDatesFix ?? undefined,
   );
   const [datePickerVisable, setDateVisable] = useState(false);
   const [deadlinePickerVisable, setDeadlineVisable] = useState(false);
   const [detailedDesc, setDetailedDesc] = useState(
-    fullClub?.expandedDescription ?? ""
+    fullClub?.expandedDescription ?? "",
   );
   const [clubRules, setClubRules] = useState(fullClub?.clubRules ?? "");
 
   const [meetingLoc, setMeetingLoc] = useState(fullClub?.meetingLocation ?? "");
   const [frequency, setFrequency] = useState<number | undefined>(
-    fullClub?.meetingFreq ?? undefined
+    fullClub?.meetingFreq ?? undefined,
   );
   const { width } = Dimensions.get("window");
   const toggleExpanded = () => {
@@ -128,7 +128,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
 
   const [restricted, setRestricted] = useState(fullClub?.restricted ?? false);
   const [restrictedType, setRestrictedType] = useState<number>(
-    fullClub?.restrictedType ?? 0
+    fullClub?.restrictedType ?? 0,
   );
 
   const selectTag = (tag: string) => {
@@ -161,12 +161,27 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
       selectedTags[1] === "Sports" ||
       selectedTags[2] === "Sports";
   }, [selectedTags]);
-  const animatedStyle = useAnimatedStyle(() => {
-    const animatedHeight = expanded ? withTiming(height) : withTiming(0);
-    return {
-      height: animatedHeight,
-    };
-  });
+
+  const [height, setHeight] = useState(0);
+  const tagContentHeight = useSharedValue(0);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: tagContentHeight.value,
+    overflow: "hidden",
+  }));
+
+  useEffect(() => {
+    tagContentHeight.value = withTiming(expanded ? height : 0, {
+      duration: 220,
+    });
+  }, [expanded, height]);
+
+  const pagerRef = useRef<PagerView>(null);
+
+  const [step, setStep] = useState(0);
+  const MAX_STEP = 2;
+  const nextStep = () => (step < MAX_STEP ? setStep((prev) => prev + 1) : {});
+  const prevStep = () => (step > 0 ? setStep((prev) => prev - 1) : {});
 
   const restrictedAnimatedStyle = useAnimatedStyle(() => {
     const animatedHeight = restricted
@@ -176,7 +191,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
       height: animatedHeight,
     };
   });
-
+  const [height, setHeight] = useState(0);
   const onLayout = (event: LayoutChangeEvent) => {
     const layoutHeight = event.nativeEvent.layout.height;
 
