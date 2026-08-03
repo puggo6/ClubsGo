@@ -4,6 +4,7 @@ import CreateSceenComp from "@/components/create";
 import EventCard from "@/components/eventCard";
 import { SizeGradientButton } from "@/components/gradientButton";
 import { TagsText } from "@/components/tag";
+import { isParent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
@@ -28,7 +29,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import Animated, {
+  Extrapolate,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
@@ -120,6 +127,28 @@ export default function clubInfo() {
     }
     handleHaptics();
   };
+
+  const HEADER_HEIGHT = 220;
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_HEIGHT],
+      [0, -HEADER_HEIGHT],
+      Extrapolate.CLAMP
+    );
+    return {
+      transform: [{ translateY }],
+    };
+  });
+
   const handleRequest = async (clubId: Id<"clubs">) => {
     try {
       await requestClub({ clubId });
@@ -161,7 +190,7 @@ export default function clubInfo() {
     bottomSheetRef.current?.close(); // opens to the first snap point
   };
 
-  const snapPoints = ["25%", "50%", "75%"];
+  const snapPoints = React.useMemo(() => ["25%", "50%", "75%"], []);
 
   const screenWidth = Dimensions.get("window").width;
   const CustomBackground = ({ style }: BottomSheetBackgroundProps) => (
@@ -177,17 +206,29 @@ export default function clubInfo() {
   );
   return (
     <View
-      style={[
-        styles.container,
-        {
-          paddingTop: insets.top,
-          paddingRight: insets.right,
-          paddingLeft: insets.left,
-          paddingBottom: insets.bottom,
-        },
-      ]}
+      style={{
+        backgroundColor: COLORS.background,
+
+        flex: 1,
+
+        paddingTop: insets.top,
+        paddingRight: insets.right,
+        paddingLeft: insets.left,
+      }}
     >
-      <View style={[styles.infoHeader, { height: 220 }]}>
+      <Animated.View
+        style={[
+          styles.infoHeader,
+          {
+            height: HEADER_HEIGHT,
+            position: "absolute",
+            top: 60,
+            left: 0,
+            right: 0,
+          },
+          headerAnimatedStyle,
+        ]}
+      >
         <View
           style={{
             justifyContent: "center",
@@ -236,7 +277,7 @@ export default function clubInfo() {
                 textAlign: "center",
                 position: "absolute",
                 width: "95%",
-                top: 100,
+                top: 110,
               }}
               adjustsFontSizeToFit
               numberOfLines={1}
@@ -260,15 +301,7 @@ export default function clubInfo() {
             />
           )}
         </View>
-      </View>
-      <Pressable
-        onPress={() => {
-          router.back();
-        }}
-      >
-        <Text style={styles.leaveText}>Back to Home</Text>
-      </Pressable>
-      <View style={{ height: 30 }} />
+      </Animated.View>
 
       {/*
       {tag1 && (
@@ -288,13 +321,21 @@ export default function clubInfo() {
         )}
       */}
 
-      <ScrollView>
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={{
+          paddingTop: 180,
+          paddingBottom: 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         <View
           style={{
             alignItems: "center",
             justifyContent: "center",
             paddingBottom: 25,
-            paddingTop: 2,
+            paddingTop: 30,
           }}
         >
           <TagsText tags={club?.tags ?? []} />
@@ -376,6 +417,41 @@ export default function clubInfo() {
             </Text>
             {club?.restricted0?.applicationDeadline && club.eventList[0] && (
               <View>
+                <View
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "InterRegular",
+                      fontSize: 20,
+                      color: COLORS.textSecondary,
+                    }}
+                  >
+                    {"Deadline - "}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      handleAdd(
+                        club.eventList[0]?._id,
+                        club.eventList[0]?.clubId,
+                        club.eventList[0]?.title
+                      )
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.linkText,
+                        { fontFamily: "InterRegular", fontSize: 20 },
+                      ]}
+                    >
+                      {"Add to Calendar"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <EventCard
                   event={club.eventList[0]}
                   inClub={true}
@@ -422,7 +498,7 @@ export default function clubInfo() {
                   color: COLORS.textSecondary,
                 }}
               >
-                Tryout Dates -
+                {"Tryout Dates - "}
               </Text>
               <TouchableOpacity
                 onPress={
@@ -440,7 +516,7 @@ export default function clubInfo() {
                     { fontFamily: "InterRegular", fontSize: 20 },
                   ]}
                 >
-                  Add All to Calendar
+                  {"Add All to Calendar"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -480,7 +556,7 @@ export default function clubInfo() {
           </View>
         )}
         <Text
-          style={styles.infoSubheaderText}
+          style={[styles.infoSubheaderText, { marginTop: 20 }]}
           adjustsFontSizeToFit
           numberOfLines={1}
         >
@@ -489,12 +565,13 @@ export default function clubInfo() {
         <Text style={styles.infoPageText}>{club?.clubRules}</Text>
         <View
           style={{
-            marginTop: 50,
+            marginTop: 20,
             marginHorizontal: 30,
             justifyContent: "center",
+            marginBottom: 40,
           }}
         >
-          {club?._id && (
+          {club?._id && !isParent(user?.userData?.role) && (
             <SizeGradientButton
               onPress={
                 club.restricted
@@ -508,7 +585,7 @@ export default function clubInfo() {
             />
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
       {(user?.userData.role === "administrator" ||
         user?.userData.role === "superAdmin") &&
         club?.advisors?.includes(user.userData._id) &&
@@ -518,7 +595,6 @@ export default function clubInfo() {
               alignItems: "flex-end",
               justifyContent: "flex-end",
               flex: 1,
-              marginBottom: 80,
             }}
           >
             <TouchableOpacity
@@ -531,7 +607,7 @@ export default function clubInfo() {
             </TouchableOpacity>
           </View>
         )}
-      {school && (
+      {school && club && (
         <BottomSheet
           ref={bottomSheetRef}
           index={-1}

@@ -1,4 +1,5 @@
 import { SchoolMemberCard } from "@/components/memberCard";
+import { isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -35,7 +36,7 @@ export default function fullSchoolUsers() {
     },
     {
       title: "Students",
-      data: fullSchool?.users.filter((u) => u?.role === "student"),
+      data: fullSchool?.users.filter((u) => isStudent(u?.role)),
     },
   ];
   const VISIBLE_SECTIONS = MEMBERDATA.map(({ title, data }) => ({

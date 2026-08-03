@@ -136,23 +136,27 @@ export default function GroupchatCard({
           </View>
           <View style={{ flexDirection: "column", marginRight: 50 }}>
             <Text style={styles.clubName}>{name}</Text>
-            <Text
-              style={[
-                styles.clubInfo,
-                {
-                  fontFamily: newMessage ? "OpenSansBold" : "OpenSaneRegular",
-                  color: newMessage ? COLORS.textPrimary : COLORS.textSecondary,
-                },
-              ]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {(lastMessage
-                ? !byUser
-                  ? getFirstName(lastSender) + ": "
-                  : ""
-                : "") + (lastMessage ?? "")}
-            </Text>
+            {lastMessage !== "No Previous Messages" && (
+              <Text
+                style={[
+                  styles.clubInfo,
+                  {
+                    fontFamily: newMessage ? "OpenSansBold" : "OpenSaneRegular",
+                    color: newMessage
+                      ? COLORS.textPrimary
+                      : COLORS.textSecondary,
+                  },
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {(lastMessage && lastMessage !== "No Previous Messages"
+                  ? !byUser
+                    ? getFirstName(lastSender) + ": "
+                    : ""
+                  : "") + (lastMessage ?? "")}
+              </Text>
+            )}
           </View>
         </View>
         <View

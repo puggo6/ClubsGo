@@ -30,6 +30,7 @@ import StylizedInput from "./stylizedInput";
 type props = {
   inputClub?: Id<"clubs">;
   back?: () => void;
+  error?: () => void;
 };
 
 type editProps = {
@@ -37,12 +38,15 @@ type editProps = {
   back: () => void;
 };
 
-export default function CreateEvent({ inputClub, back }: props) {
+export default function CreateEvent({ inputClub, back, error }: props) {
   const [startedCreate, setStartedCreate] = useState(false);
   const [local, setLocal] = useState(true); // !local would indicate a global event (local events are club-scoped, global events are school-scoped)
 
   const [eventTitle, setEventTitle] = useState("");
   const currentUser = useUserData();
+  const currentSchool = useQuery(api.schools.getSchoolData, {
+    schoolId: currentUser?.userData.school?._id,
+  });
   const [hasDescription, setHasDescription] = useState(false);
   const [eventDescription, setEventDescription] = useState("");
 
@@ -79,9 +83,10 @@ export default function CreateEvent({ inputClub, back }: props) {
   const handleCreateEvent = async () => {
     setStartedCreate(true);
     console.log("started create event ", eventDate, eventTitle, eventType);
-    if (!eventDate || !eventTitle || !eventType) {
+    if (!eventDate || !eventTitle || !eventType || !selectedClub) {
       setStartedCreate(false);
-      throw new Error("missing required fields");
+      error ? error() : null;
+      return;
     }
     const correctStartTime =
       eventStartTime.length > 0 ? eventStartTime : undefined;
@@ -224,9 +229,14 @@ export default function CreateEvent({ inputClub, back }: props) {
     setFreeTags((prev) => [...prev, tag]);
   };
 
-  const dropdownClubs = currentUser?.userData.clubs.map((c) => {
-    return { label: c?.name, value: c?._id };
-  });
+  const dropdownClubs =
+    currentUser?.userData.role === "superAdmin"
+      ? currentSchool?.clubs?.map((c) => {
+          return { label: c?.name, value: c?._id };
+        })
+      : currentUser?.userData.clubs.map((c) => {
+          return { label: c?.name, value: c?._id };
+        });
 
   return (
     <TouchableWithoutFeedback

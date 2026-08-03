@@ -13,7 +13,7 @@ import BottomSheet, {
 import { useMutation, useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -32,7 +32,7 @@ export default function messages() {
   const handleOpenChat = useMutation(api.groupChats.handleOpenChat);
   const [chatName, setName] = useState("PC");
   const createGroupChat = useMutation(api.groupChats.createChat);
-
+  const exitChat = useMutation(api.users.exitChat);
   const chatIds = currentUser?.userData.chats
     .map((c) => c?._id)
     .filter((c) => c !== undefined);
@@ -44,11 +44,11 @@ export default function messages() {
   const handleCloseSheet = () => {
     bottomSheetRef.current?.close(); // opens to the first snap point
   };
-  if (!currentUser) return <></>;
 
-  const handleCreate = () => {
-    createGroupChat({ users: [currentUser?.userData._id], name: chatName });
-  };
+  useEffect(() => {
+    exitChat();
+    console.log("exited");
+  }, []);
   const handleOpen = (chat: Id<"groupChats">, message: string) => {
     handleOpenChat({ message, groupChat: chat });
     router.push({
@@ -56,6 +56,12 @@ export default function messages() {
       params: { groupchatId: chat },
     });
   };
+  if (!currentUser) return <></>;
+
+  const handleCreate = () => {
+    createGroupChat({ users: [currentUser?.userData._id], name: chatName });
+  };
+
   const snapPoints = ["100", "25%", "50%", "75%"];
   const CustomBackground = ({ style }: BottomSheetBackgroundProps) => (
     <View
@@ -94,7 +100,7 @@ export default function messages() {
       />
       <View
         style={{
-          flex: 1,
+          height: "100%",
         }}
       >
         <FlatList
@@ -126,7 +132,13 @@ export default function messages() {
                   name={item.name ?? ""}
                   profiles={profiles}
                   currentUserId={currentUser.userData._id}
-                  lastMessage={item.messages ? item.messages[0]?.message : ""}
+                  lastMessage={
+                    item.messages &&
+                    item.messages[0]?.message &&
+                    item.messages[0]?.message.length > 0
+                      ? item.messages[0]?.message
+                      : "No Previous Messages"
+                  }
                   lastSender={
                     item.messages ? (sender?.user?.fullName ?? "") : ""
                   }

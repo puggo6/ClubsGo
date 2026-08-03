@@ -453,7 +453,19 @@ export const approveMember = mutation({
     await ctx.db.patch(args.userId, {
       clubs: [...(user?.clubs ?? []), args.clubId],
       requestedClubs: updatedUserPending,
+      chats: club.groupChat
+        ? [...(user?.chats ?? []), club.groupChat]
+        : [...(user?.chats ?? [])],
     });
+    const chat = club.groupChat ? await ctx.db.get(club.groupChat) : undefined;
+    if (club.groupChat && chat && user) {
+      await ctx.db.patch(club.groupChat, {
+        members: [
+          ...chat.members,
+          { lastRead: chat.messages[0]?.message ?? "", user: user._id },
+        ],
+      });
+    }
   },
 });
 
@@ -470,6 +482,33 @@ export const getClubList = query({
         };
       })
     );
+  },
+});
+
+export const getChildrensClubs = query({
+  args: {
+    userList: v.array(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const users = await Promise.all(
+      args.userList.map(async (c) => {
+        const user = await ctx.db.get(c);
+        return {
+          user,
+        };
+      })
+    );
+    const fullClubs = users.flatMap((u) => u.user?.clubs);
+    const clubs = await Promise.all(
+      fullClubs.map(async (c) => {
+        if (!c) return null;
+        const club = await ctx.db.get(c);
+        return {
+          club,
+        };
+      })
+    );
+    return clubs.filter((c): c is NonNullable<typeof c> => c !== null);
   },
 });
 

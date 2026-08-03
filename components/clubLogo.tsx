@@ -33,6 +33,7 @@ export default function ClubLogo({ clubN, image }: props) {
         position: "absolute",
         alignItems: "center",
         justifyContent: "center",
+        zIndex: 20,
       }}
     >
       <View
@@ -44,6 +45,7 @@ export default function ClubLogo({ clubN, image }: props) {
           position: "absolute",
           alignItems: "center",
           justifyContent: "center",
+          zIndex: 20,
         }}
       >
         {!image && (

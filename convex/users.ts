@@ -40,6 +40,22 @@ export const createUser = mutation({
       clerkId: args.clerkId,
       numClubs: 0,
       clubs: [],
+      newMessages: [],
+    });
+  },
+});
+
+export const updateUserProfile = mutation({
+  args: {
+    username: v.optional(v.string()),
+    fullName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    await ctx.db.patch(currentUser._id, {
+      username: args.username ? args.username : currentUser.username,
+      fullName: args.fullName ? args.fullName : currentUser.fullName,
     });
   },
 });
@@ -82,7 +98,14 @@ export const joinClub = mutation({
     });
   },
 });
-
+export const exitChat = mutation({
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    await ctx.db.patch(user._id, {
+      currentChat: undefined,
+    });
+  },
+});
 export const requestJoinClub = mutation({
   args: {
     clubId: v.id("clubs"),
@@ -176,7 +199,12 @@ export const updateUserRole = mutation({
 
 export const getUserData = query({
   args: { clerkId: v.string() },
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
+    const userTest = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!userTest) return undefined;
     const currentUser = await getAuthenticatedUser(ctx);
 
     const school = currentUser.school
@@ -184,15 +212,34 @@ export const getUserData = query({
       : null;
 
     const clubs = await Promise.all(
-      currentUser.clubs.map((clubId) => ctx.db.get(clubId))
+      currentUser.clubs.map((clubId) => ctx.db.get(clubId)),
     );
     const requestedClubs = currentUser.requestedClubs
       ? await Promise.all(
-          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId))
+          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId)),
         )
       : [];
     const chats = currentUser.chats
       ? await Promise.all(currentUser.chats?.map((c) => ctx.db.get(c)))
+      : [];
+
+    const reqChild = currentUser.requestedChildren
+      ? await Promise.all(
+          currentUser.requestedChildren.map((c) => ctx.db.get(c))
+        )
+      : [];
+    const appChild = currentUser.approvedChildren
+      ? await Promise.all(
+          currentUser.approvedChildren.map((c) => ctx.db.get(c))
+        )
+      : [];
+    const reqParent = currentUser.requestedParents
+      ? await Promise.all(
+          currentUser.requestedParents.map((c) => ctx.db.get(c))
+        )
+      : [];
+    const appParent = currentUser.approvedParents
+      ? await Promise.all(currentUser.approvedParents.map((c) => ctx.db.get(c)))
       : [];
     return {
       ...currentUser,
@@ -200,6 +247,10 @@ export const getUserData = query({
       clubs,
       requestedClubs,
       chats,
+      requestedChildren: reqChild,
+      approvedChildren: appChild,
+      requestedParents: reqParent,
+      approvedParents: appParent,
     };
   },
 });
@@ -213,11 +264,11 @@ export const getSpecificUser = query({
       : null;
 
     const clubs = await Promise.all(
-      currentUser.clubs.map((clubId) => ctx.db.get(clubId))
+      currentUser.clubs.map((clubId) => ctx.db.get(clubId)),
     );
     const requestedClubs = currentUser.requestedClubs
       ? await Promise.all(
-          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId))
+          currentUser.requestedClubs.map((clubId) => ctx.db.get(clubId)),
         )
       : [];
     return {
@@ -266,7 +317,7 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
 }
 
 export const leaveSchool = mutation({
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const currentUser = await getAuthenticatedUser(ctx);
     if (!currentUser) throw new Error("User not found");
 
@@ -275,10 +326,10 @@ export const leaveSchool = mutation({
     const school = await ctx.db.get(currentUser.school);
     const filteredUsers = school?.userList.filter((u) => u !== currentUser._id);
     const filteredAdmins = (school?.adminList ?? []).filter(
-      (u) => u !== currentUser._id
+      (u) => u !== currentUser._id,
     );
     const filteredPending = (school?.pendingAdminList ?? []).filter(
-      (u) => u !== currentUser._id
+      (u) => u !== currentUser._id,
     );
     if (!school?._id) return;
 
@@ -301,10 +352,10 @@ export const leaveClub = mutation({
     const currentUser = await getAuthenticatedUser(ctx);
     const club = await ctx.db.get(args.clubId);
     const updatedMembers = club?.members.filter(
-      (member) => member.userId !== currentUser._id
+      (member) => member.userId !== currentUser._id,
     );
     const updatedClubs = currentUser.clubs.filter(
-      (listId) => listId !== args.clubId
+      (listId) => listId !== args.clubId,
     );
 
     await ctx.db.patch(args.clubId, {
@@ -333,7 +384,7 @@ export const cleanUserFields = mutation({
         let filteredReqClubs: GenericId<"clubs">[] = [];
         if (realUser?.requestedClubs)
           filteredReqClubs = realUser?.requestedClubs.filter((c) =>
-            validClubs.has(c)
+            validClubs.has(c),
           );
         await ctx.db.patch(user, {
           clubs: filteredClubs,
@@ -366,6 +417,55 @@ export const removeEventFromList = mutation({
       eventList: [
         ...(currentUser.eventList?.filter((e) => e !== args.eventId) ?? []),
       ],
+    });
+  },
+});
+
+export const requestChild = mutation({
+  args: {
+    studentId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const student = await ctx.db.get(args.studentId);
+
+    await ctx.db.patch(currentUser._id, {
+      requestedChildren: [
+        ...(currentUser.requestedChildren ?? []),
+        args.studentId,
+      ],
+    });
+    await ctx.db.patch(args.studentId, {
+      requestedParents: [...(student?.requestedParents ?? []), currentUser._id],
+    });
+  },
+});
+
+export const approveParent = mutation({
+  args: {
+    parentId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const parent = await ctx.db.get(args.parentId);
+
+    await ctx.db.patch(currentUser._id, {
+      requestedParents: [
+        ...(currentUser.requestedParents?.filter((u) => u !== args.parentId) ??
+          []),
+      ],
+    });
+    await ctx.db.patch(currentUser._id, {
+      approvedParents: [...(currentUser.approvedParents ?? []), args.parentId],
+    });
+    await ctx.db.patch(args.parentId, {
+      requestedChildren: [
+        ...(parent?.requestedChildren?.filter((u) => u !== currentUser._id) ??
+          []),
+      ],
+    });
+    await ctx.db.patch(args.parentId, {
+      approvedChildren: [...(parent?.approvedChildren ?? []), currentUser._id],
     });
   },
 });

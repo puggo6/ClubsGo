@@ -1,5 +1,8 @@
 import ClubCard from "@/components/clubCard";
+import { StudentMemberCard } from "@/components/memberCard";
+import { ConditionalPager } from "@/components/pager";
 import Tag, { availableTags } from "@/components/tag";
+import { isParent, isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -33,6 +36,7 @@ export default function Browse() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { schoolData } = useSchoolData();
+
   const currentDate = String(dayjs());
   const rawClubList = schoolData?.clubs ?? [];
 
@@ -57,8 +61,12 @@ export default function Browse() {
     return !userClubs.includes(club._id) && !requestedClubs?.includes(club._id);
   });
 
-  const joinClub = useMutation(api.users.joinClub);
+  const requestChild = useMutation(api.users.requestChild);
+  const handleChildReq = async (child: Id<"users">) => {
+    await requestChild({ studentId: child });
+  };
 
+  const joinClub = useMutation(api.users.joinClub);
   const handelJoin = async (clubId: Id<"clubs">) => {
     try {
       await joinClub({ clubId, currentDate });
@@ -113,6 +121,66 @@ export default function Browse() {
       return matchesSearch && matchesTags;
     });
   }, [searchQuery, clubList, selectedTags]);
+
+  const clubPage = (
+    <View style={styles.cardsContainer}>
+      <FlatList
+        data={filteredClubList}
+        keyExtractor={(item) => item?._id ?? Math.random().toString()}
+        contentContainerStyle={{ padding: 16 }}
+        ListFooterComponent={<View />}
+        ListFooterComponentStyle={{ height: 50 }}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <ClubCard onPress={() => handleInfo(item._id)} club={item} />
+        )}
+      ></FlatList>
+    </View>
+  );
+
+  // make it so that only students with the same last name show up by default and the user can choose to search all
+  const requestedChildren = currentUser?.userData.requestedChildren.map(
+    (u) => u?._id
+  );
+  const studentUsers = schoolData?.users
+    .filter((u) => isStudent(u?.role))
+    .filter((u) => !requestedChildren?.includes(u?._id));
+  console.log(studentUsers);
+  const parentPage = (
+    <View onStartShouldSetResponder={() => true} style={{ flex: 1 }}>
+      <FlatList
+        data={studentUsers}
+        keyExtractor={(item) => item?._id ?? Math.random().toString()}
+        contentContainerStyle={{ padding: 16 }}
+        ListFooterComponent={<View />}
+        ListFooterComponentStyle={{ height: 50 }}
+        renderItem={({ item }) => {
+          return (
+            item && (
+              <StudentMemberCard
+                email={item?.email ?? ""}
+                userPFP={item?.profilePicture}
+                name={item?.fullName ?? ""}
+                onPress={() => handleChildReq(item._id)}
+              />
+            )
+          );
+        }}
+        ItemSeparatorComponent={({}) => (
+          <View
+            style={{
+              alignSelf: "center",
+              height: 2,
+              backgroundColor: COLORS.surfaceLight,
+              marginVertical: 10,
+              paddingHorizontal: 30,
+              width: "90%",
+            }}
+          />
+        )}
+      />
+    </View>
+  );
 
   return (
     <TouchableWithoutFeedback
@@ -204,18 +272,17 @@ export default function Browse() {
             </View>
           </Animated.View>
         </View>
-
-        <View style={styles.cardsContainer}>
-          <FlatList
-            data={filteredClubList}
-            keyExtractor={(item) => item?._id ?? Math.random().toString()}
-            contentContainerStyle={{ padding: 16 }}
-            ListFooterComponent={<View />}
-            ListFooterComponentStyle={{ height: 50 }}
-            renderItem={({ item }) => (
-              <ClubCard onPress={() => handleInfo(item._id)} club={item} />
-            )}
-          ></FlatList>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <ConditionalPager
+            condition={true}
+            surface={false}
+            bottomDots={false}
+            pages={
+              isParent(currentUser?.userData.role)
+                ? [parentPage, clubPage]
+                : [clubPage]
+            }
+          />
         </View>
       </View>
     </TouchableWithoutFeedback>
