@@ -41,19 +41,19 @@ export default defineSchema({
         applicationLink: v.optional(v.string()),
         hasDeadline: v.boolean(),
         applicationDeadline: v.optional(v.string()),
-      })
+      }),
     ),
     restricted1: v.optional(
       v.object({
         tryoutDesc: v.string(),
         tryoutDate: v.optional(v.array(v.string())),
         tryoutIds: v.optional(v.array(v.id("events"))),
-      })
+      }),
     ),
     restricted2: v.optional(
       v.object({
         prerequisites: v.array(v.string()),
-      })
+      }),
     ),
 
     school: v.id("schools"),
@@ -63,7 +63,7 @@ export default defineSchema({
         userId: v.id("users"),
         dateJoined: v.string(),
         role: v.optional(v.string()), // an undefined role means normal member
-      })
+      }),
     ),
     pendingMembers: v.optional(v.array(v.id("users"))),
     numMembers: v.number(),
@@ -75,8 +75,8 @@ export default defineSchema({
         v.object({
           user: v.id("users"),
           role: v.string(),
-        })
-      )
+        }),
+      ),
     ),
     groupChat: v.optional(v.id("groupChats")),
     eventList: v.array(v.id("events")),
@@ -112,6 +112,7 @@ export default defineSchema({
     clubId: v.id("clubs"),
     title: v.optional(v.string()),
     message: v.string(),
+    pinned: v.optional(v.boolean()),
     postedBy: v.id("users"),
     datePosted: v.string(),
     image: v.optional(v.string()),
@@ -137,7 +138,7 @@ export default defineSchema({
 
   groupChats: defineTable({
     members: v.array(
-      v.object({ user: v.id("users"), lastRead: v.optional(v.string()) })
+      v.object({ user: v.id("users"), lastRead: v.optional(v.string()) }),
     ),
     name: v.string(),
     messages: v.array(
@@ -146,7 +147,7 @@ export default defineSchema({
 
         message: v.string(),
         dateSent: v.string(),
-      })
+      }),
     ),
   }),
 });

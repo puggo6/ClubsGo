@@ -60,13 +60,13 @@ export default function index() {
   const [bottomSheetMode, setBottomMode] = useState<number>(0); // 0 for club creation, 1 for announcement, 2 for event
   const pendingClubList = useMemo(() => {
     return (currentUser?.userData.requestedClubs ?? []).filter(
-      (c): c is NonNullable<typeof c> => c !== null
+      (c): c is NonNullable<typeof c> => c !== null,
     );
   }, [currentUser?.userData.requestedClubs]);
 
   const clubList = useMemo(() => {
     return (currentUser?.userData.clubs ?? []).filter(
-      (c): c is NonNullable<typeof c> => c !== null
+      (c): c is NonNullable<typeof c> => c !== null,
     );
   }, [currentUser?.userData.clubs]);
   const [clubData, setClubData] = useState<typeof clubList>(clubList);
@@ -113,7 +113,7 @@ export default function index() {
         </View>
       </BottomSheetFooter>
     ),
-    []
+    [],
   );
   if (!currentUser) return <LoadingScreen />;
   if (currentUser.id === "not-in-db") {
@@ -211,19 +211,23 @@ export default function index() {
           />
         </View>
       )}
-      <View
-        style={{
-          right: 0,
-          position: "absolute",
-          bottom: 60,
-        }}
-      >
-        <NewFAB
-          clubPress={handleClubPress}
-          announcementPress={handleAnnouncementPress}
-          eventPress={handleEventPress}
-        />
-      </View>
+      {(currentUser.userData.role === "administrator" ||
+        currentUser.userData.role === "superAdmin") &&
+        currentUser.userData.school && (
+          <View
+            style={{
+              right: 0,
+              position: "absolute",
+              bottom: 60,
+            }}
+          >
+            <NewFAB
+              clubPress={handleClubPress}
+              announcementPress={handleAnnouncementPress}
+              eventPress={handleEventPress}
+            />
+          </View>
+        )}
       {/* Text and arrow if the user is not in a school */}
 
       {(!currentUser.userData.school || noClubs) && (
@@ -240,8 +244,8 @@ export default function index() {
           >
             {!currentUser.userData.school
               ? "Tap the school icon " +
-                (role === "headAdmin"
-                  ? " to create a school!"
+                (role === "superAdmin"
+                  ? "to create a school!"
                   : "and join a school to " +
                     (role === "student"
                       ? "join and participate in clubs!"

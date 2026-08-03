@@ -80,7 +80,7 @@ export default function clubManagement() {
       ? {
           clubId: clubId as Id<"clubs">,
         }
-      : "skip"
+      : "skip",
   );
   const [isAdmin, setIsAdmin] = useState<boolean | undefined>(false);
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function clubManagement() {
   const eventDaySet = new Set(
     eventList
       ? eventList.map((event) => dayjs(event?.dateNumber).format("YYYY-MM-DD"))
-      : []
+      : [],
   );
   const router = useRouter();
 
@@ -131,6 +131,8 @@ export default function clubManagement() {
 
   const clubList = club ? [...club.members] : [];
 
+  const setPinnedStatus = useMutation(api.announcements.setPinnedStatus);
+
   const [createExpanded, setCreateExpanded] = useState(false);
   const toggleExpanded = () => {
     setCreateExpanded(!createExpanded);
@@ -139,7 +141,7 @@ export default function clubManagement() {
   const [eventSelected, setEventSelected] = useState(true);
   const [bottomSheetType, setBottomSheetType] = useState(0); // 0=Event, 1 = Announcement, 2 = editEvent, 3 = editAnnouncement, 4 = userInfo, 5 = leadership roles, 6 = announcements
   const [editEvent, setEditEvent] = useState<Id<"events"> | undefined>(
-    undefined
+    undefined,
   );
   const [eventIcon] = useState(new Animated.Value(40));
   const [announcementIcon] = useState(new Animated.Value(40));
@@ -231,11 +233,11 @@ export default function clubManagement() {
   const [selectedDay, setSelectedDay] = useState(dayjs());
 
   const selectedEvents = club?.eventList.filter((event) =>
-    dayjs(event?.dateNumber).isSame(selectedDay, "day")
+    dayjs(event?.dateNumber).isSame(selectedDay, "day"),
   );
 
   const events = (useClubData(club?._id)?.eventList ?? []).filter(
-    (e): e is Doc<"events"> => !!e && !!e.startTime
+    (e): e is Doc<"events"> => !!e && !!e.startTime,
   );
 
   const sortedEvents = [...events].sort((a, b) => {
@@ -247,7 +249,7 @@ export default function clubManagement() {
 
   const sortedMeetings = sortedEvents.filter((e) => e.eventType === "Meeting");
   const sortedNonMeetings = sortedEvents.filter(
-    (e) => e.eventType !== "Meeting"
+    (e) => e.eventType !== "Meeting",
   );
 
   const [pressedDay, setPressedDay] = useState<Dayjs | undefined>(undefined);
@@ -353,6 +355,18 @@ export default function clubManagement() {
               dateCreated={item?.datePosted ?? ""}
               eventId={item?.event}
               key={item?._id}
+              isAdmin={
+                currentUser?.userData.role === "admin" ||
+                currentUser?.userData.role === "superAdmin"
+              }
+              onPin={(isPinned) => {
+                item?._id
+                  ? setPinnedStatus({
+                      announcementId: item?._id,
+                      status: isPinned ?? false,
+                    })
+                  : null;
+              }}
             />
           ))}
       </View>
@@ -374,7 +388,7 @@ export default function clubManagement() {
           (u) =>
             u &&
             !club?.pendingMembers?.includes(u.user) &&
-            !club?.advisors?.includes(u?.userId)
+            !club?.advisors?.includes(u?.userId),
         )
         .map((m) => m.user),
       show: true,
@@ -530,9 +544,12 @@ export default function clubManagement() {
 
   const fullAnnouncements = club?.announcementList
     .filter((a): a is Doc<"announcements"> => a !== null)
+    .sort((a, b) => {
+      return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    })
     .map((announcement) => {
       const matchingEvent = club.eventList.find(
-        (event) => event?._id === announcement.event
+        (event) => event?._id === announcement.event,
       );
 
       return {
@@ -540,6 +557,7 @@ export default function clubManagement() {
         eventData: matchingEvent ?? undefined,
       };
     });
+
   const AnnouncementsTab = () => (
     <View>
       <FlatList
@@ -555,6 +573,17 @@ export default function clubManagement() {
               image={item.image}
               dateCreated={item.datePosted}
               eventId={item.eventData?._id}
+              pinned={item.pinned}
+              isAdmin={
+                currentUser?.userData.role === "admin" ||
+                currentUser?.userData.role === "superAdmin"
+              }
+              onPin={(isPinned) => {
+                setPinnedStatus({
+                  announcementId: item._id,
+                  status: isPinned ?? false,
+                });
+              }}
             />
           ) : null
         }

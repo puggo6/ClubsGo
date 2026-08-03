@@ -64,9 +64,12 @@ export default function SchoolDashboard() {
       <View style={{ alignItems: "center" }}>
         <Text style={styles.headerTitle}>Upcoming Events</Text>
         <Text
-          style={[styles.subTitle, { color: COLORS.textPrimary, fontSize: 20 }]}
+          style={[
+            styles.subTitle,
+            { color: COLORS.textPrimary, fontSize: 18, paddingHorizontal: 10 },
+          ]}
         >
-          Tap and Hold an Event to Add
+          Tap and Hold an Event to Add to Calender!
         </Text>
       </View>
       <EventListView events={events} inClub={false} onLongPress={handleAdd} />
