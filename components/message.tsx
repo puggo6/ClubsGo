@@ -3,7 +3,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import dayjs from "dayjs";
 import isToday from "dayjs/plugin/isToday";
 import { Image } from "expo-image";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 type props = {
@@ -50,7 +50,7 @@ export default function message({
         marginBottom: consecutive ? 4 : 15,
       }}
     >
-      {!byUser && imageUrl && (
+      {!byUser && !!imageUrl && (
         <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
       )}
       <View
@@ -86,9 +86,6 @@ export default function message({
           <Text style={styles.dateText}>{formDate}</Text>
         </View>
       </View>
-      {byUser && imageUrl && (
-        <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
-      )}
     </View>
   );
 }
@@ -118,12 +115,11 @@ const styles = StyleSheet.create({
   },
   nameText: {
     color: COLORS.textSecondary,
-    fontFamily: "InterMediun",
+    fontFamily: "InterMedium",
     fontSize: 12,
     textAlign: "left",
   },
   nameContainer: {
-    marginBottom: 4,
     width: "100%",
     alignSelf: "flex-start",
     alignItems: "flex-start",

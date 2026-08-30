@@ -13,12 +13,15 @@ import InitialLayout from "../components/initialLayout";
 
 export default function RootLayout() {
   LogBox.ignoreAllLogs(true);
-  const fontsLoaded = useFonts({
+  const [fontsLoaded] = useFonts({
     InterLight: require("../assets/fonts/Inter_18pt-Light.ttf"),
     InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
     InterSemiBold: require("../assets/fonts/Inter_18pt-SemiBold.ttf"),
     InterMedium: require("../assets/fonts/Inter_18pt-Medium.ttf"),
-    PoppinsRegulat: require("../assets/fonts/Poppins-Regular.ttf"),
+    InterBold: require("../assets/fonts/Inter_18pt-Bold.ttf"),
+    InterBlack: require("../assets/fonts/Inter_18pt-Black.ttf"),
+    InterExtraBold: require("../assets/fonts/Inter_18pt-ExtraBold.ttf"),
+    PoppinsRegular: require("../assets/fonts/Poppins-Regular.ttf"),
     PoppinsMedium: require("../assets/fonts/Poppins-Medium.ttf"),
     PoppinsSemiBold: require("../assets/fonts/Poppins-SemiBold.ttf"),
     PoppinsBold: require("../assets/fonts/Poppins-Bold.ttf"),

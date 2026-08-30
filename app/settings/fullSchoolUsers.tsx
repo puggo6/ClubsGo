@@ -1,51 +1,137 @@
 import { SchoolMemberCard } from "@/components/memberCard";
-import { isStudent } from "@/constants/roles";
+import { StylizedSearch } from "@/components/stylizedInput";
+import UserInfoModal from "@/components/userInfo";
+import { isAdmin, isHeadAdmin, isParent, isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/settings.styles";
+import { AntDesign } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
-import React from "react";
-import { SectionList, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import {
+  Pressable,
+  SectionList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function fullSchoolUsers() {
   const user = useUserData();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMember, setSelectedMember] = useState<
+    Doc<"users"> | undefined
+  >(undefined);
 
   const school = user?.userData.school;
-  let fullSchool = undefined;
-  if (school?._id) {
-    fullSchool = useQuery(api.schools.getSchoolData, { schoolId: school?._id });
-  }
-  const approveUser = useMutation(api.schools.approveJoinRequest);
-  if (!school?._id) return;
 
-  const handleApprove = (user: Id<"users">) => {
-    approveUser({ userId: user, schoolId: school?._id });
+  const fullSchool = useQuery(
+    api.schools.getSchoolData,
+    school?._id ? { schoolId: school._id } : "skip",
+  );
+
+  const approveUser = useMutation(api.schools.approveJoinRequest);
+
+  const users = useMemo(() => {
+    return fullSchool?.users.filter((u) =>
+      u?.fullName.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [searchQuery, fullSchool?.users]);
+
+  const admins = useMemo(() => {
+    return (fullSchool?.adminList ?? []).filter((u) =>
+      u?.fullName.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [searchQuery, fullSchool?.adminList]);
+
+  const pendingAdmins = useMemo(() => {
+    return (fullSchool?.pendingAdminList ?? []).filter((u) =>
+      u?.fullName.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [searchQuery, fullSchool?.pendingAdminList]);
+
+  if (!school?._id) return null;
+
+  const handleUserInfo = (u: Doc<"users"> | undefined) => {
+    if (!u) return;
+    setSelectedMember(u);
   };
-  const MEMBERDATA = [
+
+  const handleApprove = (userId: Id<"users">) => {
+    approveUser({ userId, schoolId: school._id });
+  };
+
+  const isHeadAdminApproved =
+    isHeadAdmin(user?.userData.role) && user?.userData.approvedAdmin;
+
+  let MEMBERDATA = [
     {
-      title: "Approved Admins",
-      data: fullSchool?.adminList,
+      title: "Admins",
+      data: admins,
     },
     {
-      title: "Pending Admins",
-      data: fullSchool?.pendingAdminList,
+      title: "Parents",
+      data: users?.filter((u) => isParent(u?.role)) ?? [],
     },
     {
       title: "Students",
-      data: fullSchool?.users.filter((u) => isStudent(u?.role)),
+      data: users?.filter((u) => isStudent(u?.role)) ?? [],
     },
   ];
-  const VISIBLE_SECTIONS = MEMBERDATA.map(({ title, data }) => ({
-    title,
-    data: data ?? [],
-  }));
+
+  if (isHeadAdminApproved) {
+    MEMBERDATA = [
+      {
+        title: "Head Admins",
+        data: admins.filter((u) => isHeadAdmin(u?.role)),
+      },
+      {
+        title: "Administrators",
+        data: admins.filter((u) => isAdmin(u?.role) && !isHeadAdmin(u?.role)),
+      },
+      {
+        title: "Pending Admins",
+        data: pendingAdmins,
+      },
+      {
+        title: "Parents",
+        data: users?.filter((u) => isParent(u?.role)) ?? [],
+      },
+      {
+        title: "Students",
+        data: users?.filter((u) => isStudent(u?.role)) ?? [],
+      },
+    ];
+  }
+
+  const VISIBLE_SECTIONS = MEMBERDATA.filter((s) => (s.data?.length ?? 0) > 0) // ✅ hide empty sections
+    .map(({ title, data }) => ({ title, data: data ?? [] }));
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: 10 }]}>
+      <Pressable
+        onPress={() => router.push("/settings/school")}
+        style={{ justifyContent: "flex-start", width: "100%" }}
+      >
+        <AntDesign
+          name="left"
+          size={32}
+          color={COLORS.textSecondary}
+          style={{ marginLeft: 20 }}
+        />
+      </Pressable>
+
+      <StylizedSearch
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        label="Search"
+        dark={false}
+      />
+
       <View style={styles.memberListBackdrop}>
         <SectionList
           sections={VISIBLE_SECTIONS}
@@ -53,34 +139,29 @@ export default function fullSchoolUsers() {
           contentContainerStyle={{ padding: 16 }}
           ListFooterComponent={<View />}
           ListFooterComponentStyle={{ height: 50 }}
-          renderItem={({ item }) => {
-            return (
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleUserInfo(item ?? undefined)}>
               <SchoolMemberCard
                 isMember={
-                  (item?.role === "student"
-                    ? true
-                    : item?._id && school?.adminList?.includes(item?._id)) ??
-                  false
+                  isStudent(item?.role) ||
+                  isParent(item?.role) ||
+                  (isAdmin(item?.role) && (item?.approvedAdmin ?? false))
                 }
                 userPFP={item?.profilePicture}
                 name={item?.fullName ?? ""}
                 email={item?.email ?? ""}
-                onPress={
-                  item?._id
-                    ? () => {
-                        handleApprove(item._id);
-                      }
-                    : () => {}
-                }
+                onPress={item?._id ? () => handleApprove(item._id) : () => {}}
                 approvalCard={
-                  (item &&
-                    item._id &&
-                    school?.pendingAdminList?.includes(item?._id)) ??
-                  true
+                  !!item?._id && isAdmin(item?.role) && !item?.approvedAdmin
+                }
+                isHead={
+                  !!item &&
+                  isHeadAdmin(item?.role) &&
+                  !!user?.userData.approvedAdmin
                 }
               />
-            );
-          }}
+            </TouchableOpacity>
+          )}
           renderSectionHeader={({ section: { title } }) => (
             <>
               <View style={styles.divSpace}>
@@ -98,7 +179,7 @@ export default function fullSchoolUsers() {
               />
             </>
           )}
-          ItemSeparatorComponent={({}) => (
+          ItemSeparatorComponent={() => (
             <View
               style={{
                 alignSelf: "center",
@@ -112,6 +193,12 @@ export default function fullSchoolUsers() {
           )}
         />
       </View>
+
+      <UserInfoModal
+        visible={!!selectedMember}
+        onClose={() => setSelectedMember(undefined)}
+        user={selectedMember}
+      />
     </View>
   );
 }

@@ -58,7 +58,7 @@ export const styles = StyleSheet.create({
   gradientBar: {
     height: 3,
     borderRadius: 2,
-    marginBottom: 20,
+
     marginTop: 0,
   },
   joinSchoolText: {

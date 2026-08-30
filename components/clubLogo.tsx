@@ -1,15 +1,16 @@
 import { COLORS } from "@/constants/theme";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
 import { Text, View } from "react-native";
 
 type props = {
   clubN: string;
   image?: string;
+  color?: string;
+  blank?: boolean;
 };
 
-export default function ClubLogo({ clubN, image }: props) {
+export default function ClubLogo({ clubN, image, color, blank }: props) {
   let clubName = clubN;
   let initals = clubName.substring(0, 1).toUpperCase();
   let i = clubName.indexOf(" ");
@@ -23,7 +24,13 @@ export default function ClubLogo({ clubN, image }: props) {
 
   return (
     <LinearGradient
-      colors={["#12c2e9", "#c471ed", "#f64f59"]} // Your signature gradient
+      colors={
+        blank
+          ? [COLORS.textPrimary, COLORS.textPrimary]
+          : color
+            ? [color, color]
+            : ["#12c2e9", "#c471ed", "#f64f59"]
+      } // Your signature gradient
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{
@@ -52,13 +59,13 @@ export default function ClubLogo({ clubN, image }: props) {
           <Text
             style={{
               fontFamily: "MontserratBold",
-              fontSize: 40,
+              fontSize: initals.length < 3 ? 40 : 32,
               letterSpacing: 2,
               textAlign: "center",
               color: COLORS.textPrimary,
               width: 80,
             }}
-            adjustsFontSizeToFit
+            adjustsFontSizeToFit={true}
             numberOfLines={1}
           >
             {initals}

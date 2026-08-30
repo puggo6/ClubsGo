@@ -1,4 +1,7 @@
+import DismissKeyboardView from "@/components/dismissKeyboardView";
+import GradeSelector from "@/components/gradeSelection";
 import StylizedInput from "@/components/stylizedInput";
+import { isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
@@ -8,8 +11,14 @@ import { useMutation } from "convex/react";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useRef } from "react";
-import { Animated, Keyboard, Pressable, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
@@ -20,7 +29,7 @@ export default function profile() {
     currentUser?.userData.fullName || "",
   );
   const [hasChanges, setHasChanges] = React.useState(false);
-
+  const [grade, setGrade] = useState(currentUser?.userData.gradeLevel ?? 0);
   const cleanClubs = useMutation(api.clubs.removeDeletedUsersFromClubs);
   const cleanEvents = useMutation(api.clubs.removeDeletedEventsFromClubs);
   const cleanUsers = useMutation(api.schools.removeDeletedUsersFromSchools);
@@ -124,12 +133,7 @@ export default function profile() {
           },
         ]}
       >
-        <Pressable
-          onPress={() => {
-            Keyboard.dismiss();
-          }}
-          style={{ flex: 1, width: "100%" }}
-        >
+        <DismissKeyboardView>
           <Pressable
             onPress={() => {
               router.back();
@@ -163,18 +167,33 @@ export default function profile() {
               }}
               dark={false}
             />
+            {isStudent(currentUser.userData.role) && (
+              <View style={{ alignSelf: "center", width: "100%" }}>
+                <GradeSelector
+                  value={grade}
+                  onChange={(newGrade) => {
+                    setGrade(newGrade);
+                    setHasChanges(true);
+                  }}
+                />
+              </View>
+            )}
           </View>
+
           <Animated.View
             style={[
               styles.saveButton,
               { bottom: 0, transform: [{ translateY }] },
             ]}
           >
-            <Pressable onPress={handleUpdateInfo} style={styles.pressable}>
+            <TouchableOpacity
+              onPress={handleUpdateInfo}
+              style={styles.pressable}
+            >
               <Text style={styles.saveButtonText}>Save Changes</Text>
-            </Pressable>
+            </TouchableOpacity>
           </Animated.View>
-        </Pressable>
+        </DismissKeyboardView>
       </View>
     </View>
   );

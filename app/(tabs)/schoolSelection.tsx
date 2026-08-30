@@ -4,7 +4,7 @@ import SchoolDashboard from "@/components/schoolDashboard";
 import { COLORS } from "@/constants/theme";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/create.styles";
-import React from "react";
+import { useState } from "react";
 import {
   Keyboard,
   Platform,
@@ -18,6 +18,7 @@ export default function schoolSeletion() {
   const insets = useSafeAreaInsets();
   const isNewUser = !currentUser?.userData.school;
   const isAdmin = currentUser?.userData.role == "superAdmin";
+  const [headCreate, setHeadCreate] = useState(true);
   const logTest = () =>
     console.log(currentUser?.userData.school, " ", isNewUser);
   return (
@@ -40,8 +41,10 @@ export default function schoolSeletion() {
         {isAdmin ? (
           currentUser.userData.school ? (
             <SchoolDashboard />
+          ) : headCreate ? (
+            <CreateSchool onSwitch={() => setHeadCreate(false)} />
           ) : (
-            <CreateSchool />
+            <JoinSchool onSwitch={() => setHeadCreate(true)} />
           )
         ) : isNewUser ? (
           <JoinSchool />

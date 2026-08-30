@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     flex: 1,
     alignItems: "center",
+    height: "100%",
   },
   infoText: {
     fontSize: 20,
@@ -81,7 +82,6 @@ export const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     width: "100%",
-    marginBottom: 20,
   },
   userAvatar: {
     width: 60,
@@ -115,7 +115,6 @@ export const styles = StyleSheet.create({
     fontFamily: "InterRegular",
     fontSize: 24,
     color: COLORS.textSecondary,
-    paddingHorizontal: 20,
   },
   subHeaderText: {
     fontFamily: "OpenSansRegular",
@@ -199,7 +198,7 @@ export const styles = StyleSheet.create({
     marginHorizontal: 20,
     paddingTop: 20,
     borderRadius: 40,
-    justifyContent: "center",
+
     flex: 1,
   },
   divSpace: {
@@ -247,5 +246,54 @@ export const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "600",
     fontSize: 16,
+  },
+  subHeaderTitle: {
+    fontSize: 40,
+    color: COLORS.textPrimary,
+
+    fontFamily: "PoppinsSemiBold",
+  },
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 25,
+    padding: 20,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  title: {
+    color: COLORS.textPrimary,
+    fontFamily: "PoppinsSemiBold",
+    fontSize: 24,
+  },
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.04)",
+  },
+  label: {
+    color: COLORS.textSecondary,
+    fontFamily: "PoppinsRegular",
+    fontSize: 14,
+  },
+  value: {
+    color: COLORS.textPrimary,
+    fontFamily: "PoppinsBold",
+    fontSize: 14,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: COLORS.surfaceAlternate,
+    marginBottom: 12,
   },
 });

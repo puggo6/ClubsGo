@@ -35,6 +35,8 @@ export const createAnnouncement = mutation({
       datePosted: args.datePosted,
       image: imageUrl,
       event: args.event,
+      creatorName: currentUser.fullName,
+      creatorPFP: currentUser.profilePicture,
     });
 
     const currClubId = args.clubId;
@@ -48,6 +50,29 @@ export const createAnnouncement = mutation({
     return annoucementId;
   },
 });
+
+// convex/announcements.ts
+export const deleteAnnouncement = mutation({
+  args: { announcementId: v.id("announcements") },
+  handler: async (ctx, args) => {
+    const announcement = await ctx.db.get(args.announcementId);
+    if (!announcement) return;
+
+    if (announcement.clubId) {
+      const club = await ctx.db.get(announcement.clubId);
+      if (club) {
+        await ctx.db.patch(announcement.clubId, {
+          announcementList: club.announcementList.filter(
+            (id) => id !== args.announcementId,
+          ),
+        });
+      }
+    }
+
+    await ctx.db.delete(args.announcementId);
+  },
+});
+
 export const createGlobAnnouncement = mutation({
   args: {
     clubId: v.optional(v.id("clubs")),
@@ -78,6 +103,8 @@ export const createGlobAnnouncement = mutation({
       datePosted: args.datePosted,
       image: imageUrl,
       event: args.event,
+      creatorName: currentUser.fullName,
+      creatorPFP: currentUser.profilePicture,
     });
 
     const currClubId = args.clubId;
@@ -133,7 +160,7 @@ export const getManyAnnouncements = query({
         }
 
         return { ...announcement, event: eventData };
-      })
+      }),
     );
     return announcements.filter((a): a is NonNullable<typeof a> => a !== null);
   },

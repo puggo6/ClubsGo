@@ -1,18 +1,19 @@
 import { LargeMonochromeButton } from "@/components/gradientButton";
 import LoadingScreen from "@/components/loadingScreen";
 import SettingsButton from "@/components/settingsButton";
-import { isHeadAdmin, isParent, isStudent } from "@/constants/roles";
+import { APP_VERSION } from "@/constants/appVersion";
+import { FEEDBACK_FORM_URL } from "@/constants/links";
+import { isAdmin, isHeadAdmin, isParent, isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/settings.styles";
 import { useAuth } from "@clerk/clerk-expo";
-import { AntDesign, FontAwesome6 } from "@expo/vector-icons";
+import { AntDesign, FontAwesome6, MaterialIcons } from "@expo/vector-icons";
 import { useMutation } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
-import { Dimensions, Image, Text, View } from "react-native";
+import { Dimensions, Image, Linking, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function profile() {
@@ -68,6 +69,10 @@ export default function profile() {
     return <LoadingScreen />;
   }
 
+  const pendingParents = currentUser.userData.requestedParents.length > 0;
+  const openFeedback = async () => {
+    await Linking.openURL(FEEDBACK_FORM_URL);
+  };
   return (
     <View
       style={[
@@ -89,6 +94,7 @@ export default function profile() {
         end={{ x: 1, y: 0 }}
         style={styles.gradientBar}
       />
+      <View style={{ height: 20 }} />
       <Image
         source={{ uri: currentUser.profilePicture }}
         style={styles.userAvatar}
@@ -104,6 +110,11 @@ export default function profile() {
                 ? "Parent"
                 : "Administrator"
           : ""}
+        {currentUser.userData.school &&
+          isAdmin(currentUser.userData.role) &&
+          !currentUser.userData.approvedAdmin && (
+            <Text style={{ color: COLORS.userColor }}> - Pending Approval</Text>
+          )}
       </Text>
 
       <SettingsButton
@@ -113,19 +124,22 @@ export default function profile() {
       >
         <AntDesign name="user" size={32} color={COLORS.textSecondary} />
       </SettingsButton>
-      <SettingsButton
-        onPress={() => router.push("/settings/school")}
-        title="School"
-        screenWidth={screenWidth}
-      >
-        <FontAwesome6 name="school" size={32} color={COLORS.textSecondary} />
-      </SettingsButton>
+      {currentUser.userData.school && (
+        <SettingsButton
+          onPress={() => router.push("/settings/school")}
+          title="School"
+          screenWidth={screenWidth}
+        >
+          <FontAwesome6 name="school" size={32} color={COLORS.textSecondary} />
+        </SettingsButton>
+      )}
       {/* add red dot notification indicatior */}
       {isStudent(role) && (
         <SettingsButton
           onPress={() => router.push("/settings/parents")}
           title="Parents"
           screenWidth={screenWidth}
+          notification={pendingParents}
         >
           <FontAwesome6
             name="user-group"
@@ -134,8 +148,49 @@ export default function profile() {
           />
         </SettingsButton>
       )}
+      {isParent(role) && (
+        <SettingsButton
+          onPress={() => router.push("/settings/linkChildren")}
+          title="Link Children"
+          screenWidth={screenWidth}
+          notification={pendingParents}
+        >
+          <FontAwesome6
+            name="user-group"
+            size={32}
+            color={COLORS.textSecondary}
+          />
+        </SettingsButton>
+      )}
+      <SettingsButton
+        onPress={openFeedback}
+        title="Feedback"
+        screenWidth={screenWidth}
+        notification={pendingParents}
+        subtitle="Suggest a feature or report a bug"
+      >
+        <MaterialIcons name="feedback" size={32} color={COLORS.textSecondary} />
+      </SettingsButton>
       <View style={{ height: 40 }} />
-      <LargeMonochromeButton title="Sign Out" onPress={() => signOut()} />
+      <View
+        style={{
+          justifyContent: "flex-end",
+          flex: 1,
+          width: "100%",
+          alignItems: "center",
+        }}
+      >
+        <LargeMonochromeButton title="Sign Out" onPress={() => signOut()} />
+        <Text
+          style={{
+            marginBottom: 20,
+            color: COLORS.textMuted,
+            fontFamily: "InterRegular",
+          }}
+        >
+          {"ClubsGo Version " + APP_VERSION}
+        </Text>
+      </View>
     </View>
   );
 }

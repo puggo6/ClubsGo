@@ -1,13 +1,15 @@
 import { COLORS } from "@/constants/theme";
+import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 
 type defProps = {
   onPress: () => void;
   title?: string;
   disabled?: boolean;
   restricted?: boolean;
+  fixSpacing?: boolean;
 };
 type sizeProps = {
   onPress: () => void;
@@ -19,11 +21,21 @@ type sizeProps = {
   restricted?: boolean;
 };
 
+type pairProps = {
+  onPress: (() => void)[];
+  buttonTitles: string[];
+  disabled?: boolean;
+  buttonWidth: number;
+  fixSpacing?: boolean;
+  buttonTypes: number[];
+};
+
 export default function GradientButton({
   onPress,
   title,
   disabled = false,
   restricted,
+  fixSpacing,
 }: defProps) {
   return (
     <View style={styles.outerButton}>
@@ -49,7 +61,7 @@ export default function GradientButton({
           <Text style={styles.text}>{title}</Text>
         </Pressable>
       </LinearGradient>
-      <View style={{ paddingBottom: 60 }} />
+      {!fixSpacing && <View style={{ paddingBottom: 60 }} />}
     </View>
   );
 }
@@ -153,6 +165,105 @@ export function SizeGradientButton({
           <Text style={[styles.text]}>{title}</Text>
         </Pressable>
       </LinearGradient>
+    </View>
+  );
+}
+
+export function ButtonPair({
+  buttonTitles,
+  onPress,
+  disabled = false,
+  fixSpacing,
+  buttonWidth,
+  buttonTypes, //0=gradient, 1=monochrome, 2=red
+}: pairProps) {
+  return (
+    <View
+      style={{
+        width: "100%",
+
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <FlatList
+        data={buttonTitles}
+        horizontal
+        renderItem={(item) => {
+          return (
+            <View style={{ width: buttonWidth, marginHorizontal: 20 }}>
+              {buttonTypes[item.index] !== 0 ? (
+                <View
+                  style={[
+                    styles.gradientBorder,
+                    disabled && styles.disabledBorder,
+                    buttonTypes[item.index] === 1 && {
+                      backgroundColor: COLORS.textSecondary,
+                    },
+                    buttonTypes[item.index] === 2 && {
+                      borderColor: "red",
+                    },
+                  ]}
+                >
+                  <Pressable
+                    onPress={onPress[item.index]}
+                    disabled={disabled}
+                    style={({ pressed }) => [
+                      styles.button,
+                      pressed && styles.pressed,
+                      disabled && styles.disabled,
+                      buttonTypes[item.index] === 2 && {
+                        backgroundColor: COLORS.deleteRed,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+
+                        alignItems: "center",
+                      }}
+                    >
+                      {buttonTypes[item.index] === 2 && (
+                        <View style={{ position: "absolute", left: -30 }}>
+                          <FontAwesome
+                            name="trash-o"
+                            size={24}
+                            color={COLORS.textPrimary}
+                          />
+                        </View>
+                      )}
+                      <Text style={styles.text}>{item.item}</Text>
+                    </View>
+                  </Pressable>
+                </View>
+              ) : (
+                <LinearGradient
+                  colors={["#f64f59", "#c471ed", "#12c2e9"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.gradientBorder,
+                    disabled && styles.disabledBorder,
+                  ]}
+                >
+                  <Pressable
+                    onPress={onPress[item.index]}
+                    disabled={disabled}
+                    style={({ pressed }) => [
+                      styles.button,
+                      pressed && styles.pressed,
+                      disabled && styles.disabled,
+                    ]}
+                  >
+                    <Text style={styles.text}>{item.item}</Text>
+                  </Pressable>
+                </LinearGradient>
+              )}
+            </View>
+          );
+        }}
+      />
     </View>
   );
 }

@@ -1,21 +1,16 @@
 import ClubCard from "@/components/clubCard";
-import { StudentMemberCard } from "@/components/memberCard";
-import { ConditionalPager } from "@/components/pager";
 import Tag, { availableTags } from "@/components/tag";
-import { isParent, isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
-import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useSchoolData } from "@/hooks/useSchoolData";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/browse.styles";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { TouchableWithoutFeedback } from "@gorhom/bottom-sheet";
-import { useMutation } from "convex/react";
 import dayjs from "dayjs";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   FlatList,
   Keyboard,
@@ -36,6 +31,7 @@ export default function Browse() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { schoolData } = useSchoolData();
+  const isWeb = Platform.OS === "web";
 
   const currentDate = String(dayjs());
   const rawClubList = schoolData?.clubs ?? [];
@@ -53,7 +49,7 @@ export default function Browse() {
     }) ?? [];
 
   const fullClubList = rawClubList.filter(
-    (c): c is NonNullable<typeof c> => c !== null
+    (c): c is NonNullable<typeof c> => c !== null,
   );
 
   const clubList = fullClubList.filter((club) => {
@@ -61,23 +57,10 @@ export default function Browse() {
     return !userClubs.includes(club._id) && !requestedClubs?.includes(club._id);
   });
 
-  const requestChild = useMutation(api.users.requestChild);
-  const handleChildReq = async (child: Id<"users">) => {
-    await requestChild({ studentId: child });
-  };
-
-  const joinClub = useMutation(api.users.joinClub);
-  const handelJoin = async (clubId: Id<"clubs">) => {
-    try {
-      await joinClub({ clubId, currentDate });
-    } catch (error) {
-      console.log("Error joining club:", error);
-    }
-  };
   const handleInfo = (club: Id<"clubs">) => {
     router.push({
       pathname: "/club/clubInfo",
-      params: { clubId: club },
+      params: { clubId: club, isBrowsing: "true" },
     });
   };
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,54 +114,22 @@ export default function Browse() {
         ListFooterComponent={<View />}
         ListFooterComponentStyle={{ height: 50 }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <ClubCard onPress={() => handleInfo(item._id)} club={item} />
-        )}
-      ></FlatList>
-    </View>
-  );
-
-  // make it so that only students with the same last name show up by default and the user can choose to search all
-  const requestedChildren = currentUser?.userData.requestedChildren.map(
-    (u) => u?._id
-  );
-  const studentUsers = schoolData?.users
-    .filter((u) => isStudent(u?.role))
-    .filter((u) => !requestedChildren?.includes(u?._id));
-  console.log(studentUsers);
-  const parentPage = (
-    <View onStartShouldSetResponder={() => true} style={{ flex: 1 }}>
-      <FlatList
-        data={studentUsers}
-        keyExtractor={(item) => item?._id ?? Math.random().toString()}
-        contentContainerStyle={{ padding: 16 }}
-        ListFooterComponent={<View />}
-        ListFooterComponentStyle={{ height: 50 }}
         renderItem={({ item }) => {
+          const memberIds = new Set(item.members.map((m) => m.userId));
+          const children = currentUser?.userData.approvedChildren
+            .filter((c) => c?._id && memberIds.has(c?._id))
+            .map((c) => c?.fullName);
+
           return (
-            item && (
-              <StudentMemberCard
-                email={item?.email ?? ""}
-                userPFP={item?.profilePicture}
-                name={item?.fullName ?? ""}
-                onPress={() => handleChildReq(item._id)}
-              />
-            )
+            <ClubCard
+              onPress={() => handleInfo(item._id)}
+              club={item}
+              inBrowse
+              childrenNames={children?.filter((c) => c !== undefined)}
+            />
           );
         }}
-        ItemSeparatorComponent={({}) => (
-          <View
-            style={{
-              alignSelf: "center",
-              height: 2,
-              backgroundColor: COLORS.surfaceLight,
-              marginVertical: 10,
-              paddingHorizontal: 30,
-              width: "90%",
-            }}
-          />
-        )}
-      />
+      ></FlatList>
     </View>
   );
 
@@ -210,79 +161,77 @@ export default function Browse() {
           end={{ x: 1, y: 0 }}
           style={styles.gradientBar}
         />
-        <View
-          style={{
-            flexDirection: "column",
-            backgroundColor: "#1c1c1c",
-            borderWidth: 1,
-            borderColor: "#2a2a2a",
-            borderRadius: 14,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            marginHorizontal: 16,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="search" size={20} color={COLORS.textSecondary} />
+        <View>
+          <View
+            style={[
+              {
+                flexDirection: "column",
+                backgroundColor: "#1c1c1c",
+                borderWidth: 1,
+                borderColor: "#2a2a2a",
+                borderRadius: 14,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                marginHorizontal: 16,
+                marginTop: 15,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="search" size={20} color={COLORS.textSecondary} />
 
-            <TextInput
-              style={{
-                flex: 1,
-                fontSize: 16,
-                color: COLORS.textPrimary,
-                marginLeft: 8,
-              }}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder={"Search"}
-              placeholderTextColor="#888"
-              autoCapitalize="sentences"
-            />
-            <View style={styles.selectedTags}>
-              {selectedTags.map((tag) => (
-                <Tag
-                  key={tag}
-                  category={tag}
-                  visable={true}
-                  onPress={() => deselectTag(tag)}
-                />
-              ))}
-            </View>
-            <Pressable onPress={toggleExpanded}>
-              <AntDesign name="filter" color={COLORS.textSecondary} size={20} />
-            </Pressable>
-          </View>
-          <Animated.View style={[animatedStyle, { overflow: "hidden" }]}>
-            <View>
-              {selectedTags.length == 0 && (
-                <Tag category="placeholder" visable={false} />
-              )}
-
-              <View style={styles.divider} />
-              <View style={styles.tagSelection}>
-                {freeTags.map((tag) => (
+              <TextInput
+                style={{
+                  flex: 1,
+                  fontSize: 16,
+                  color: COLORS.textPrimary,
+                  marginLeft: 8,
+                }}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder={"Search"}
+                placeholderTextColor="#888"
+                autoCapitalize="sentences"
+              />
+              <View style={styles.selectedTags}>
+                {selectedTags.map((tag) => (
                   <Tag
                     key={tag}
                     category={tag}
                     visable={true}
-                    onPress={() => selectTag(tag)}
+                    onPress={() => deselectTag(tag)}
                   />
                 ))}
               </View>
+              <Pressable onPress={toggleExpanded}>
+                <AntDesign
+                  name="filter"
+                  color={COLORS.textSecondary}
+                  size={20}
+                />
+              </Pressable>
             </View>
-          </Animated.View>
-        </View>
-        <View style={{ flex: 1, alignItems: "center" }}>
-          <ConditionalPager
-            condition={true}
-            surface={false}
-            bottomDots={false}
-            pages={
-              isParent(currentUser?.userData.role)
-                ? [parentPage, clubPage]
-                : [clubPage]
-            }
-          />
+            <Animated.View style={[animatedStyle, { overflow: "hidden" }]}>
+              <View>
+                {selectedTags.length == 0 && (
+                  <Tag category="placeholder" visable={false} />
+                )}
+
+                <View style={styles.divider} />
+                <View style={styles.tagSelection}>
+                  {freeTags.map((tag) => (
+                    <Tag
+                      key={tag}
+                      category={tag}
+                      visable={true}
+                      onPress={() => selectTag(tag)}
+                    />
+                  ))}
+                </View>
+              </View>
+            </Animated.View>
+          </View>
+          <View style={{ flex: 1 }}>{clubPage}</View>
         </View>
       </View>
     </TouchableWithoutFeedback>

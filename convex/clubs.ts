@@ -6,7 +6,8 @@ import { getAuthenticatedUser } from "./users";
 export const createClub = mutation({
   args: {
     name: v.string(),
-    description: v.string(),
+    description: v.optional(v.string()),
+    clubColor: v.optional(v.string()),
     expandedDesc: v.optional(v.string()),
     clubRules: v.optional(v.string()),
     tags: v.array(v.string()),
@@ -30,9 +31,6 @@ export const createClub = mutation({
   },
 
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-
     const currentUser = await getAuthenticatedUser(ctx);
 
     if (!currentUser) throw new Error("user not found");
@@ -49,7 +47,8 @@ export const createClub = mutation({
 
     const clubId = await ctx.db.insert("clubs", {
       name: args.name,
-      description: args.description,
+      description: args.description ?? "",
+      clubColor: args.clubColor,
       expandedDescription: args.expandedDesc,
       clubRules: args.clubRules,
       tags: args.tags,
@@ -65,7 +64,7 @@ export const createClub = mutation({
       eventList: [],
       announcementList: [],
       nextMeeting: undefined,
-
+      configurations: { adminsNeedApproval: true },
       restricted0: args.applicationDesc
         ? {
             applicationDesc: args.applicationDesc,
@@ -89,18 +88,14 @@ export const createClub = mutation({
       meetingFreq: args.meetingFrequency,
       clubPublic: false,
       groupChat: chatId,
-      leadershipRoles: [
-        "President",
-        "Vice President",
-        "Treasurer",
-        "Secretary",
-      ],
+      officerRoles: ["President", "Vice President", "Treasurer", "Secretary"],
       restrictedType: args.restrictedType ?? undefined,
     });
     if (args.deadline) {
       const eventId = await ctx.db.insert("events", {
         clubId: clubId,
         global: false,
+
         title: args.name + " Application Deadline",
         description: "",
         startTime: undefined,
@@ -191,7 +186,7 @@ export const createClub = mutation({
         },
       });
     }
-
+    await ctx.db.patch(chatId, { club: clubId });
     // await cleanClubListOther(school._id)
 
     return clubId;
@@ -201,6 +196,7 @@ export const updateClubInfo = mutation({
   args: {
     clubId: v.id("clubs"),
     name: v.string(),
+    clubColor: v.optional(v.string()),
     description: v.string(),
     expandedDesc: v.optional(v.string()),
     clubRules: v.optional(v.string()),
@@ -217,11 +213,20 @@ export const updateClubInfo = mutation({
     deadline: v.optional(v.string()),
     tryoutDesc: v.optional(v.string()),
     tryoutDate: v.optional(v.array(v.string())),
+    tryoutStartTime: v.optional(v.string()),
+    tryoutEndTime: v.optional(v.string()),
     prerequisites: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    if (!currentUser) throw new Error("user not found");
+
+    const currentSchoolId = await currentUser.school;
+    if (!currentSchoolId) return;
     await ctx.db.patch(args.clubId, {
       name: args.name,
+      clubColor: args.clubColor,
       description: args.description,
       expandedDescription: args.expandedDesc,
       clubRules: args.clubRules,
@@ -248,6 +253,60 @@ export const updateClubInfo = mutation({
       clubPublic: false,
       restrictedType: args.restrictedType ?? undefined,
     });
+    if (args.deadline) {
+      const eventId = await ctx.db.insert("events", {
+        clubId: args.clubId,
+        global: false,
+
+        title: args.name + " Application Deadline",
+        description: "",
+        startTime: undefined,
+        endTime: undefined,
+        location: undefined,
+        school: currentSchoolId,
+        studentList: [],
+        creator: currentUser._id,
+        dateString: args.deadline,
+        dateNumber: args.deadline,
+        eventType: "Deadline",
+      });
+
+      await ctx.db.patch(args.clubId, {
+        eventList: [eventId],
+      });
+    }
+    let newEvents: Id<"events">[] = [];
+    if (args.tryoutDate) {
+      let events: Id<"events">[] = [];
+      for (const tryout of args.tryoutDate) {
+        const eventId = await ctx.db.insert("events", {
+          clubId: args.clubId,
+          global: false,
+          title:
+            args.name + " Tryouts Day " + (args.tryoutDate.indexOf(tryout) + 1),
+          description: args.tryoutDesc,
+          startTime: args.tryoutStartTime,
+          endTime: args.tryoutEndTime,
+          location: undefined,
+          school: currentSchoolId,
+          studentList: [],
+          creator: currentUser._id,
+          dateString: tryout,
+          dateNumber: tryout,
+          eventType: "Tryout",
+        });
+        events = [...events, eventId];
+        newEvents = events;
+      }
+      await ctx.db.patch(args.clubId, {
+        eventList: [...events],
+        restricted1: {
+          tryoutDate: [...args.tryoutDate],
+          tryoutDesc: args.tryoutDesc ?? "",
+          tryoutIds: [...events],
+        },
+      });
+    }
     if (args.restrictedType === 0) {
       await ctx.db.patch(args.clubId, {
         restricted0: {
@@ -273,11 +332,73 @@ export const updateClubInfo = mutation({
     }
   },
 });
-export const getClubData = query({
-  args: { clubId: v.id("clubs") },
+export const deleteClub = mutation({
+  args: {
+    clubId: v.id("clubs"),
+  },
+
   handler: async (ctx, args) => {
     const club = await ctx.db.get(args.clubId);
-    if (!club) throw new Error("club not found");
+
+    if (!club) {
+      throw new Error("Club not found");
+    }
+
+    // Remove the club from its school's club list
+    const school = await ctx.db.get(club.school);
+
+    if (school) {
+      await ctx.db.patch(school._id, {
+        clubList: school.clubList.filter((id) => id !== args.clubId),
+      });
+    }
+
+    // Remove the club from every user's clubs/requestedClubs
+    const users = school
+      ? await Promise.all(school.userList.map((userId) => ctx.db.get(userId)))
+      : [];
+
+    for (const user of users) {
+      if (!user) continue;
+
+      await ctx.db.patch(user._id, {
+        clubs: user.clubs?.filter((id) => id !== args.clubId),
+        requestedClubs: user.requestedClubs?.filter((id) => id !== args.clubId),
+        chats: user.chats?.filter((c) => c !== club.groupChat),
+      });
+    }
+
+    // Delete all events belonging to the club
+    for (const eventId of club.eventList ?? []) {
+      const event = await ctx.db.get(eventId);
+
+      if (event) {
+        await ctx.db.delete(eventId);
+      }
+    }
+
+    // Delete the club's group chat
+    if (club.groupChat) {
+      const chat = await ctx.db.get(club.groupChat);
+
+      if (chat) {
+        await ctx.db.delete(club.groupChat);
+      }
+    }
+
+    // Finally delete the club
+    await ctx.db.delete(args.clubId);
+
+    return true;
+  },
+});
+export const getClubData = query({
+  args: { clubId: v.id("clubs"), deleting: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    console.log("GET CLUB DATAx", args.clubId);
+    const club = await ctx.db.get(args.clubId);
+    if (args.deleting) return;
+    if (!club) return;
 
     const members = await Promise.all(
       club.members.map(async (m) => {
@@ -286,30 +407,37 @@ export const getClubData = query({
           ...m,
           user,
         };
-      })
+      }),
     );
 
     const pendMembers = club.pendingMembers
       ? await Promise.all(
-          club.pendingMembers.map(async (m) => await ctx.db.get(m))
+          club.pendingMembers.map(async (m) => await ctx.db.get(m)),
         )
       : [];
     const pendAdvisors = club.pendingAdvisors
       ? await Promise.all(
-          club.pendingAdvisors.map(async (m) => await ctx.db.get(m))
+          club.pendingAdvisors.map(async (m) => await ctx.db.get(m)),
         )
       : [];
     const eventData = await Promise.all(
-      club.eventList.map((eventId) => ctx.db.get(eventId))
+      club.eventList.map((eventId) => ctx.db.get(eventId)),
     );
 
-    const announcementData = await Promise.all(
-      club.announcementList.map((announcementId) => ctx.db.get(announcementId))
+    const announcementData = (
+      await Promise.all(
+        club.announcementList.map((announcementId) =>
+          ctx.db.get(announcementId),
+        ),
+      )
+    ).filter(
+      (announcement): announcement is NonNullable<typeof announcement> =>
+        announcement !== null,
     );
     let fullTryouts = undefined;
     if (club.restricted1?.tryoutIds) {
       fullTryouts = await Promise.all(
-        club.restricted1?.tryoutIds?.map((e) => ctx.db.get(e))
+        club.restricted1?.tryoutIds?.map((e) => ctx.db.get(e)),
       );
     }
     return {
@@ -341,7 +469,7 @@ export const removeDeletedUsersFromClubs = mutation({
 
     // Fetch all clubs
     const clubs = await Promise.all(
-      school.clubList.map((clubId) => ctx.db.get(clubId))
+      school.clubList.map((clubId) => ctx.db.get(clubId)),
     );
     for (const club of clubs) {
       if (!club) break;
@@ -349,7 +477,7 @@ export const removeDeletedUsersFromClubs = mutation({
 
       // Filter out any user IDs that no longer exist
       const filteredMembers = originalMembers.filter((m) =>
-        validUserIds.has(m.userId)
+        validUserIds.has(m.userId),
       );
 
       // If the list has changed, update the club
@@ -378,14 +506,14 @@ export const removeDeletedEventsFromClubs = mutation({
     const validClubIds = new Set(events.map((event) => event.toString()));
 
     const clubs = await Promise.all(
-      school.clubList.map((clubId) => ctx.db.get(clubId))
+      school.clubList.map((clubId) => ctx.db.get(clubId)),
     );
     for (const club of clubs) {
       if (!club) break;
       const originalEvents = club.eventList ?? [];
 
       const filteredEvents = originalEvents.filter((id: string) =>
-        validClubIds.has(id)
+        validClubIds.has(id),
       );
 
       if (filteredEvents.length !== originalEvents.length) {
@@ -415,7 +543,7 @@ export const approveMember = mutation({
     const club = await ctx.db.get(args.clubId);
     const user = await ctx.db.get(args.userId);
     const updatedPending = club?.pendingMembers?.filter(
-      (u) => u !== args.userId
+      (u) => u !== args.userId,
     );
     const updatedAdv = club?.pendingAdvisors?.filter((u) => u !== args.userId);
     if (
@@ -425,7 +553,7 @@ export const approveMember = mutation({
       throw new Error("user is not a pending member");
     }
     const updatedUserPending = user?.requestedClubs?.filter(
-      (id) => id !== args.clubId
+      (id) => id !== args.clubId,
     );
     if (user?.role === "student") {
       await ctx.db.patch(args.clubId, {
@@ -474,17 +602,12 @@ export const getClubList = query({
     clubList: v.array(v.id("clubs")),
   },
   handler: async (ctx, args) => {
-    const clubs = await Promise.all(
-      args.clubList.map(async (c) => {
-        const club = await ctx.db.get(c);
-        return {
-          club,
-        };
-      })
+    const clubs = await Promise.all(args.clubList.map((c) => ctx.db.get(c)));
+    return clubs.filter(
+      (club): club is NonNullable<typeof club> => club !== null,
     );
   },
 });
-
 export const getChildrensClubs = query({
   args: {
     userList: v.array(v.id("users")),
@@ -496,7 +619,7 @@ export const getChildrensClubs = query({
         return {
           user,
         };
-      })
+      }),
     );
     const fullClubs = users.flatMap((u) => u.user?.clubs);
     const clubs = await Promise.all(
@@ -506,7 +629,7 @@ export const getChildrensClubs = query({
         return {
           club,
         };
-      })
+      }),
     );
     return clubs.filter((c): c is NonNullable<typeof c> => c !== null);
   },
@@ -519,7 +642,35 @@ export const handleSaveRoles = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.club, {
-      leadershipRoles: args.roles,
+      officerRoles: args.roles,
     });
+  },
+});
+
+export const updateMemberRole = mutation({
+  args: {
+    clubId: v.id("clubs"),
+    userId: v.id("users"),
+    role: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const club = await ctx.db.get(args.clubId);
+    if (!club) throw new Error("Club not found");
+
+    const updatedMembers = club.members.map((member) =>
+      member.userId === args.userId ? { ...member, role: args.role } : member,
+    );
+
+    await ctx.db.patch(args.clubId, { members: updatedMembers });
+  },
+});
+
+export const setClubStatus = mutation({
+  args: {
+    clubId: v.id("clubs"),
+    set: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.clubId, { clubPublic: args.set });
   },
 });

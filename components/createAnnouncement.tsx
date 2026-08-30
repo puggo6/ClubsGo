@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 import * as FileSystem from "expo-file-system";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Keyboard,
   LayoutChangeEvent,
@@ -56,10 +56,10 @@ export default function CreateAnnouncement({
   };
 
   const [selectedEvent, setSelectedEvent] = useState<Doc<"events"> | undefined>(
-    undefined
+    undefined,
   );
   const [selectedClub, setSelectedClub] = useState<Id<"clubs"> | undefined>(
-    undefined
+    undefined,
   );
   const isHeadAdmin = currentUser?.userData.role === "headAdmin";
   let masterClubs = currentUser?.userData.clubs ?? [];
@@ -175,10 +175,10 @@ export default function CreateAnnouncement({
   };
 
   const createNewAnnouncement = useMutation(
-    api.announcements.createAnnouncement
+    api.announcements.createAnnouncement,
   );
   const createGlobalAnnouncement = useMutation(
-    api.announcements.createGlobAnnouncement
+    api.announcements.createGlobAnnouncement,
   );
   const generateUploadUrl = useMutation(api.announcements.generateUploadUrl);
   const convex = useConvex();
@@ -204,7 +204,7 @@ export default function CreateAnnouncement({
             httpMethod: "POST",
 
             mimeType: "image/jpeg",
-          }
+          },
         );
 
         if (uploadResult.status !== 200) throw new Error("upload failed!");
@@ -260,7 +260,13 @@ export default function CreateAnnouncement({
         }}
       >
         <View
-          style={{ position: "absolute", opacity: 0, zIndex: -1 }}
+          style={{
+            position: "absolute",
+            opacity: 0,
+            zIndex: -1,
+            width: "100%", // ← constrain to parent width
+            overflow: "hidden",
+          }}
           onLayout={onLayout}
         >
           <EventListMap
@@ -446,7 +452,7 @@ export default function CreateAnnouncement({
         </Animated.View>
 
         <View style={{ alignItems: "center" }}>
-          {selectedImage && imageDimensions && (
+          {!!selectedImage && !!imageDimensions && (
             <View style={{ position: "relative" }}>
               <Image
                 source={selectedImage}
@@ -505,11 +511,12 @@ export default function CreateAnnouncement({
 
           <EventListMap
             events={club?.eventList?.filter(
-              (e): e is Doc<"events"> => e !== null
+              (e): e is Doc<"events"> => e !== null,
             )}
             inClub={true}
             onPress={handleEventAdd}
             inCreation={false}
+            nameWidth={300}
           />
         </Animated.View>
 

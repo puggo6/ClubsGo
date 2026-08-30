@@ -8,7 +8,6 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
 
-    paddingBottom: 30,
     justifyContent: "space-between",
     flexDirection: "column",
   },
@@ -181,5 +180,24 @@ export const styles = StyleSheet.create({
   dotIcon: {
     marginVertical: 10,
     color: COLORS.textMuted,
+  },
+  existingSchoolPrompt: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 28,
+    marginBottom: 16,
+  },
+
+  existingSchoolText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontFamily: "InterRegular",
+    marginBottom: 5,
+  },
+
+  existingSchoolLink: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontFamily: "InterMedium",
   },
 });

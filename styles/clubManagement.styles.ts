@@ -166,7 +166,7 @@ export const styles = StyleSheet.create({
   },
   menuItem: {
     fontSize: 20,
-    fontFamily: "PoppinsRegular",
+    fontFamily: "OpenSansRegular",
     color: COLORS.textPrimary,
   },
   menuItemPressable: {
@@ -203,6 +203,7 @@ export const styles = StyleSheet.create({
   tagInputContainer: {
     paddingHorizontal: 6,
     paddingVertical: 5,
+    marginTop: 15,
   },
   tagSelection: {
     flexDirection: "row",
@@ -338,5 +339,22 @@ export const styles = StyleSheet.create({
     fontSize: 24,
     color: COLORS.textSecondary,
     paddingHorizontal: 20,
+  },
+  saveButton: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  pressable: {
+    backgroundColor: COLORS.publicGreen,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: COLORS.white,
+    fontWeight: "600",
+    fontSize: 16,
   },
 });

@@ -74,6 +74,48 @@ export const editEvent = mutation({
     });
   },
 });
+export const deleteEvent = mutation({
+  args: {
+    eventId: v.id("events"),
+  },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.eventId);
+    if (!event) throw new Error("event not found");
+
+    const clubId = event.clubId;
+    const club = clubId !== undefined ? await ctx.db.get(clubId) : null;
+    if (clubId !== undefined && club) {
+      await ctx.db.patch(clubId, {
+        eventList: club.eventList.filter((id) => id !== args.eventId),
+      });
+    }
+
+    const school = await ctx.db.get(event.school);
+    if (school) {
+      await ctx.db.patch(event.school, {
+        eventList: (school.eventList ?? []).filter((id) => id !== args.eventId),
+      });
+    }
+
+    const schoolUsers = school?.userList ?? [];
+    const users = await Promise.all(
+      schoolUsers.map((userId) => ctx.db.get(userId)),
+    );
+    await Promise.all(
+      users
+        .filter((user): user is NonNullable<typeof user> => !!user)
+        .map((user) =>
+          ctx.db.patch(user._id, {
+            eventList: (user.eventList ?? []).filter(
+              (id) => id !== args.eventId,
+            ),
+          }),
+        ),
+    );
+
+    await ctx.db.delete(args.eventId);
+  },
+});
 export const createGlobEvent = mutation({
   args: {
     title: v.string(),
@@ -138,7 +180,7 @@ export const getEventData = query({
     const studentList = await Promise.all(
       event.studentList
         ? event.studentList.map((userId) => ctx.db.get(userId))
-        : []
+        : [],
     );
     return {
       ...event,
@@ -156,11 +198,11 @@ export const getManyEvents = query({
         if (!event) return null;
 
         const studentList = await Promise.all(
-          event.studentList?.map((id) => ctx.db.get(id)) ?? []
+          event.studentList?.map((id) => ctx.db.get(id)) ?? [],
         );
 
         return { ...event };
-      })
+      }),
     );
 
     // Filter out nulls in case some events don't exist
@@ -179,5 +221,15 @@ export const getEvent = query({
   handler: async (ctx, args) => {
     const event = ctx.db.get(args.eventId);
     return event;
+  },
+});
+
+export const setEventCancelled = mutation({
+  args: {
+    eventId: v.id("events"),
+    isCancelled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.eventId, { canceled: args.isCancelled });
   },
 });

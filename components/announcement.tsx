@@ -1,13 +1,13 @@
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useUserData } from "@/hooks/useUserData";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { Image } from "expo-image";
-import React, { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   Animated as RNAnimated,
   Image as RNImage,
@@ -16,11 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import EventCard from "./eventCard";
 type props = {
   description: string;
@@ -30,28 +25,33 @@ type props = {
   eventId?: Id<"events">;
   pinned?: boolean;
   isAdmin: boolean;
+  userRole?: string;
   onPin?: (pinned?: boolean) => void;
+  onDelete?: () => void;
+  createdBy: Id<"users">;
+  creatorName: string;
+  creatorPFP: string;
 };
 
 function Announcement({
   description,
   image,
   dateCreated,
+  createdBy,
+  creatorName,
+  creatorPFP,
   automated = false,
   eventId,
   pinned = false,
   isAdmin,
   onPin,
+  onDelete,
+  userRole,
 }: props) {
-  const user = useUserData();
   let event = undefined;
   if (eventId) event = useQuery(api.events.getEvent, { eventId: eventId });
 
   if (!eventId) event = undefined;
-
-  const name = user?.userData.fullName;
-  const userPFP = user?.profilePicture;
-  const creationDate = dateCreated;
 
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
@@ -62,6 +62,7 @@ function Announcement({
   const optionsAnimation = useRef(
     new RNAnimated.Value(showOptions ? 1 : 0),
   ).current;
+  const rotation = useRef(new RNAnimated.Value(0)).current;
 
   useEffect(() => {
     if (image) {
@@ -87,21 +88,26 @@ function Announcement({
   }, []);
 
   useEffect(() => {
-    if (!userUrl && userPFP) {
-      setUserUrl(userPFP); // Fetch once
+    if (!userUrl && creatorPFP) {
+      setUserUrl(creatorPFP); // Fetch once
     }
   }, []);
 
   dayjs.extend(relativeTime);
 
   useEffect(() => {
-    RNAnimated.spring(optionsAnimation, {
+    RNAnimated.timing(optionsAnimation, {
       toValue: showOptions ? 1 : 0,
+      duration: 180,
       useNativeDriver: false,
-      friction: 10,
-      tension: 90,
     }).start();
-  }, [optionsAnimation, showOptions]);
+
+    RNAnimated.timing(rotation, {
+      toValue: showOptions ? 1 : 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [optionsAnimation, rotation, showOptions]);
 
   const handleToggleOptions = () => {
     setShowOptions((prev) => !prev);
@@ -116,6 +122,7 @@ function Announcement({
 
   const handleDeleteAnnouncement = () => {
     setShowOptions(false);
+    onDelete?.();
   };
 
   const animatedOptionsStyle = {
@@ -132,17 +139,17 @@ function Announcement({
       outputRange: [16, 16],
     }),
   };
-  const rotation = useSharedValue(0);
 
-  useEffect(() => {
-    rotation.value = withTiming(showOptions ? 90 : 0, { duration: 200 });
-  }, [showOptions]);
-
-  const dotsStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ rotate: `${rotation.value}deg` }],
-    };
-  });
+  const dotsStyle = {
+    transform: [
+      {
+        rotate: rotation.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["0deg", "90deg"],
+        }),
+      },
+    ],
+  };
 
   return (
     <View style={styles.container}>
@@ -161,7 +168,7 @@ function Announcement({
           <View style={styles.dotsContainer}>
             <RNAnimated.View style={[styles.optionsMenu, animatedOptionsStyle]}>
               <View style={styles.triggerRow}>
-                <Animated.View style={dotsStyle}>
+                <RNAnimated.View style={dotsStyle}>
                   <TouchableOpacity
                     onPress={handleToggleOptions}
                     style={styles.dotsButton}
@@ -172,7 +179,7 @@ function Announcement({
                       color={COLORS.textPrimary}
                     />
                   </TouchableOpacity>
-                </Animated.View>
+                </RNAnimated.View>
               </View>
 
               {showOptions && (
@@ -211,14 +218,31 @@ function Announcement({
       <View style={styles.divider} />
       <View style={styles.userInfo}>
         <View style={styles.contentContainer}>
-          <Image source={{ uri: userUrl }} style={styles.userAvatar} />
+          <Image
+            cachePolicy="memory-disk"
+            source={{ uri: userUrl }}
+            style={styles.userAvatar}
+          />
           <View style={styles.nameContainer}>
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
-              style={styles.userName}
+              style={[styles.userName, isWeb() ? { width: "auto" } : {}]}
             >
-              {name}
+              {creatorName}
+              {userRole && (
+                <>
+                  <Text> - </Text>
+                  <Text
+                    style={{
+                      color: COLORS.primary,
+                      fontFamily: "PoppinsSemiBold",
+                    }}
+                  >
+                    {userRole}
+                  </Text>
+                </>
+              )}
             </Text>
 
             <Text style={styles.userInfoText}>
@@ -310,7 +334,7 @@ const styles = StyleSheet.create({
   descriptionText: {
     fontSize: 16,
     textAlign: "left",
-    fontFamily: "MonserratRegular",
+    fontFamily: "OpenSansRegular",
     color: COLORS.textPrimary,
     lineHeight: 20,
   },
@@ -396,7 +420,7 @@ const styles = StyleSheet.create({
   },
   optionsContent: {
     width: "100%",
-    marginTop: 2,
+
     justifyContent: "center",
   },
   optionButton: {
@@ -411,6 +435,7 @@ const styles = StyleSheet.create({
     fontFamily: "PoppinsMedium",
     fontSize: 12,
     marginLeft: 4,
+    zIndex: 99,
   },
   deleteText: {
     color: "#ff7b7b",
@@ -435,6 +460,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceAlternate,
     height: 2,
     marginHorizontal: 20,
+    zIndex: -10,
   },
   eventContainer: {
     marginLeft: 10,

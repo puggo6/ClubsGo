@@ -33,8 +33,10 @@ export default defineSchema({
     description: v.string(),
 
     tags: v.array(v.string()),
-
+    clubColor: v.optional(v.string()),
     meetingLocation: v.optional(v.string()),
+    meetingDayTime: v.optional(v.string()),
+
     meetingFreq: v.optional(v.number()), // 0 = weekly, 1 = biweekly, 2 = monthly, 3 = as needed, 4 = daily
 
     restricted: v.boolean(), // if a club is available to join without requesting, in other words open to all students
@@ -60,7 +62,15 @@ export default defineSchema({
         prerequisites: v.array(v.string()),
       }),
     ),
-
+    restricted3: v.optional(
+      v.object({
+        applicationDesc: v.string(),
+        applicationLink: v.optional(v.string()),
+        hasDeadline: v.boolean(),
+        applicationDeadline: v.optional(v.string()),
+        prerequisites: v.array(v.string()),
+      }),
+    ),
     school: v.id("schools"),
 
     members: v.array(
@@ -73,28 +83,28 @@ export default defineSchema({
     pendingMembers: v.optional(v.array(v.id("users"))),
     numMembers: v.number(),
     advisors: v.optional(v.array(v.id("users"))),
+    officers: v.optional(v.array(v.id("users"))),
+
     pendingAdvisors: v.optional(v.array(v.id("users"))),
-    leadershipRoles: v.optional(v.array(v.string())),
-    leaders: v.optional(
-      v.array(
-        v.object({
-          user: v.id("users"),
-          role: v.string(),
-        }),
-      ),
-    ),
+    officerRoles: v.optional(v.array(v.string())),
+
     groupChat: v.optional(v.id("groupChats")),
     eventList: v.array(v.id("events")),
     announcementList: v.array(v.id("announcements")),
     nextMeeting: v.optional(v.string()),
 
-    clubPublic: v.boolean(), // if a club can be viewed in the browse tab by students
+    clubPublic: v.boolean(), // if a club can be joined by students at all
 
     expandedDescription: v.optional(v.string()),
     clubRules: v.optional(v.string()),
 
     logoImage: v.optional(v.string()),
     bannerImage: v.optional(v.string()),
+    configurations: v.optional(
+      v.object({
+        adminsNeedApproval: v.boolean(),
+      }),
+    ),
   }).index("by_school_and_name", ["school", "name"]),
 
   events: defineTable({
@@ -111,6 +121,8 @@ export default defineSchema({
     studentList: v.optional(v.array(v.id("users"))),
     creator: v.id("users"),
     eventType: v.string(),
+    canceled: v.optional(v.boolean()),
+    canRsvp: v.optional(v.boolean()),
   }).index("by_club", ["clubId"]),
 
   announcements: defineTable({
@@ -120,6 +132,8 @@ export default defineSchema({
     message: v.string(),
     pinned: v.optional(v.boolean()),
     postedBy: v.id("users"),
+    creatorName: v.string(),
+    creatorPFP: v.string(),
     datePosted: v.string(),
     image: v.optional(v.string()),
     event: v.optional(v.id("events")),
@@ -140,8 +154,18 @@ export default defineSchema({
     joinCode: v.string(),
     eventList: v.optional(v.array(v.id("events"))),
     announcementList: v.optional(v.array(v.id("announcements"))),
+    configurations: v.optional(
+      v.object({
+        adminsNeedApproval: v.boolean(),
+        clubAdminsNeedApproval: v.boolean(),
+      }),
+    ),
   }).index("by_joinCode", ["joinCode"]),
-
+  keys: defineTable({
+    key: v.string(),
+    used: v.boolean(),
+    schoolId: v.optional(v.id("schools")),
+  }).index("by_key", ["key"]),
   groupChats: defineTable({
     members: v.array(
       v.object({ user: v.id("users"), lastRead: v.optional(v.string()) }),
@@ -155,5 +179,6 @@ export default defineSchema({
         dateSent: v.string(),
       }),
     ),
+    club: v.optional(v.id("clubs")),
   }),
 });

@@ -1,7 +1,14 @@
 import { COLORS } from "@/constants/theme";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  DimensionValue,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useDefaultStyles } from "react-native-ui-datepicker";
 
 type props = {
@@ -13,8 +20,14 @@ type props = {
   capitalize?: boolean;
   filterPress?: () => void;
   wordCapitalize?: boolean;
+  width?: DimensionValue;
 };
 
+type containerProps = {
+  label?: string;
+  dark: boolean;
+  children?: React.ReactNode;
+};
 type customProps = {
   label?: string;
   value: Date;
@@ -30,12 +43,14 @@ export default function StylizedInput({
   dark = false,
   capitalize = false,
   wordCapitalize = false,
+  width,
 }: props) {
   const [inputHeight, setInputHeight] = useState(40);
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, width ? { width: width } : {}]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
+        scrollEnabled={false}
         style={[
           styles.input,
           dark ? { backgroundColor: COLORS.background } : null,
@@ -54,6 +69,7 @@ export default function StylizedInput({
     </View>
   );
 }
+
 export function LargeStylizedInput({
   label,
   value,
@@ -138,6 +154,28 @@ export function StylizedSearch({
       <Pressable onPress={filterPress}>
         <AntDesign name="filter" color={COLORS.textSecondary} size={20} />
       </Pressable>
+    </View>
+  );
+}
+export function StylizedContainer({
+  label,
+
+  dark = false,
+  children,
+}: containerProps) {
+  const [inputHeight, setInputHeight] = useState(40);
+  return (
+    <View style={styles.container}>
+      {label && <Text style={styles.label}>{label}</Text>}
+      <View
+        style={[
+          styles.input,
+          dark ? { backgroundColor: COLORS.background } : null,
+          ,
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 }

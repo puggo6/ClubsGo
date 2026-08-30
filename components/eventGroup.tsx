@@ -1,7 +1,6 @@
 import { COLORS } from "@/constants/theme";
-import { Doc } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import dayjs from "dayjs";
-import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import EventCard from "./eventCard";
 
@@ -11,6 +10,12 @@ type props = {
   onPress?: (event: Doc<"events">) => void;
   onLongPress?: (event: Doc<"events">) => void;
   inCalendar?: boolean;
+  canDelete?: boolean;
+  onDelete?: (event: Doc<"events">) => void;
+  childrenIds?: Id<"users">[];
+  nameWidth?: number;
+  calendarToggle?: (event: Doc<"events">) => void;
+  uEvents?: Id<"events">[];
 };
 
 export default function EventGroup({
@@ -19,6 +24,12 @@ export default function EventGroup({
   onPress,
   onLongPress,
   inCalendar,
+  canDelete,
+  onDelete,
+  childrenIds,
+  nameWidth,
+  calendarToggle,
+  uEvents,
 }: props) {
   const sortedEvents = [...events].sort((a, b) => {
     if (!a.startTime || !b.startTime) return 0;
@@ -67,17 +78,28 @@ export default function EventGroup({
         </Text>
       </View>
       <View style={{ flex: 1 }}>
-        {sortedEvents.map((event) => (
-          <EventCard
-            event={event}
-            inClub={inClub}
-            onEvent={false}
-            key={event._id}
-            onPress={onPress ? () => onPress(event) : undefined}
-            onLongPress={onLongPress ? () => onLongPress(event) : undefined}
-            global={event.global && inCalendar}
-          />
-        ))}
+        {sortedEvents.map((event) => {
+          return (
+            <EventCard
+              event={event}
+              inClub={inClub}
+              onEvent={false}
+              key={event._id}
+              onPress={onPress ? () => onPress(event) : undefined}
+              onLongPress={onLongPress ? () => onLongPress(event) : undefined}
+              calendarToggle={
+                calendarToggle ? () => calendarToggle(event) : undefined
+              }
+              global={event.global}
+              canDelete={canDelete}
+              onDelete={onDelete ? () => onDelete(event) : undefined}
+              childrenIds={childrenIds}
+              nameWidth={nameWidth ? nameWidth : undefined}
+              cancelled={event.canceled}
+              inCalendar={uEvents?.includes(event._id)}
+            />
+          );
+        })}
       </View>
     </View>
   );

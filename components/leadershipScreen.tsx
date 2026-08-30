@@ -3,15 +3,16 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Feather } from "@expo/vector-icons";
 import { useMutation } from "convex/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import GradientButton from "./gradientButton";
+import { ButtonPair } from "./gradientButton";
 import StylizedInput from "./stylizedInput";
 type props = {
   club: Id<"clubs">;
@@ -36,9 +37,24 @@ export default function LeadershipScreen({
     await saveRoles({ club, roles });
     close();
   };
+
+  const handleDiscard = () => {
+    setRoles(previousRoles ?? []);
+    setCurrentRole("");
+  };
+
+  useEffect(() => {
+    setRoles(previousRoles ?? []);
+    setCurrentRole("");
+  }, [previousRoles]);
+
   const [currentRole, setCurrentRole] = useState("");
   return (
-    <KeyboardAvoidingView style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+    >
       <View style={styles.header}>
         <Text style={styles.headerText}>Configure Leadership Roles</Text>
       </View>
@@ -47,11 +63,18 @@ export default function LeadershipScreen({
       <View style={styles.roleContainer}>
         <View style={styles.tagSelection}>
           {roles.map((role) => (
-            <Pressable key={role} onPress={() => handleRemoveRole(role)}>
+            <View key={role} style={styles.tagContainer}>
               <View style={styles.tagBack}>
                 <Text style={styles.tagText}>{role}</Text>
               </View>
-            </Pressable>
+              <Pressable
+                onPress={() => handleRemoveRole(role)}
+                style={styles.tagXButton}
+                hitSlop={8}
+              >
+                <Feather name="x" size={10} color={COLORS.background} />
+              </Pressable>
+            </View>
           ))}
           {roles.length === 0 && (
             <View style={[styles.tagBack, { backgroundColor: "transparent" }]}>
@@ -93,7 +116,13 @@ export default function LeadershipScreen({
         </View>
       </Pressable>
       <View style={{ marginTop: 50 }}>
-        <GradientButton onPress={() => handleSave()} title="Save" />
+        <ButtonPair
+          onPressA={handleDiscard}
+          titleA="Discard"
+          onPressB={handleSave}
+          titleB="Save"
+          buttonWidth={140}
+        />
       </View>
     </KeyboardAvoidingView>
   );
@@ -137,16 +166,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
   },
+  tagContainer: {
+    position: "relative",
+    alignSelf: "flex-start",
+    marginVertical: 3,
+  },
   tagBack: {
     backgroundColor: "#2F2F3B",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     alignSelf: "flex-start",
-    borderRadius: 6,
+    borderRadius: 8,
     marginRight: 0,
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 3,
+    paddingRight: 16,
   },
   tagText: {
     color: COLORS.textPrimary,
@@ -159,5 +193,22 @@ const styles = StyleSheet.create({
     gap: 6,
     marginVertical: 2,
     justifyContent: "center",
+  },
+  tagXButton: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.grey,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
 });
