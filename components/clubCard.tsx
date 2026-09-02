@@ -43,7 +43,7 @@ export default function ClubCard({
   childrenNames = [],
 }: props) {
   const events = (useClubData(club._id)?.eventList ?? []).filter(
-    (e): e is Doc<"events"> => !!e && !!e.startTime,
+    (e): e is Doc<"events"> => !!e && !!e.startTime
   );
 
   const sortedEvents = [...events].sort((a, b) => {
@@ -247,22 +247,15 @@ export default function ClubCard({
                 >
                   {name}
                 </Text>
-                {!club.clubPublic && canManage && (
-                  <View style={styles.privateNotice}>
-                    <MaterialIcons
-                      name={"public-off"}
-                      style={{
-                        color: COLORS.textMuted,
-                      }}
-                      size={16}
-                    />
-                    <Text style={styles.privateNoticeText}>
-                      This club is currently private. Make it public in Club
-                      Settings to allow students and advisors to join.
-                    </Text>
-                  </View>
-                )}
               </View>
+              {!club.clubPublic && canManage && (
+                <View style={styles.privateNotice}>
+                  <Text style={styles.privateNoticeText}>
+                    This club is currently private - no students or advisors can
+                    join.
+                  </Text>
+                </View>
+              )}
               <Text style={styles.clubInfo}>
                 <Text style={{ color: COLORS.accentA }}>{members}</Text> Member
                 {members > 1 ? "s" : ""}
@@ -303,17 +296,30 @@ export default function ClubCard({
                 </Text>
               )}
             </View>
-            <View style={[styles.tagsContainer, { alignSelf: "flex-end" }]}>
-              <Tag visable={true} category={tag1} />
-              {t2v && <Tag visable={t2v} category={tag2} />}
-              {t3v && <Tag visable={t3v} category={tag3} />}
-            </View>
+            {joinCard && (
+              <View style={[styles.tagsContainer, { alignSelf: "flex-end" }]}>
+                <Tag visable={true} category={tag1} />
+                {t2v && <Tag visable={t2v} category={tag2} />}
+                {t3v && <Tag visable={t3v} category={tag3} />}
+              </View>
+            )}
           </View>
           <Entypo name="chevron-right" size={32} color="white" />
         </View>
         {club.restricted === true && joinCard === true && (
           <View style={styles.restrictedContainer}>
             <Ionicons name="lock-closed" color={"#CCCCCC"} size={18} />
+          </View>
+        )}
+        {!club.clubPublic && canManage && (
+          <View style={styles.restrictedContainer}>
+            <MaterialIcons
+              name={"public-off"}
+
+              color={COLORS.textMuted}
+
+              size={16}
+            />
           </View>
         )}
       </View>
@@ -517,7 +523,7 @@ const styles = StyleSheet.create({
   },
   privateNotice: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 5,
     marginTop: 1,
   },

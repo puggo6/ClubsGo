@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { getAuthenticatedUser } from "./users";
 
@@ -672,5 +672,32 @@ export const setClubStatus = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.clubId, { clubPublic: args.set });
+  },
+});
+export const getNextEventDate = query({
+  args: { clubId: v.id("clubs") },
+  handler: async (ctx, args) => {
+    const club = await ctx.db.get(args.clubId);
+    if (!club) return undefined;
+
+    const events = await Promise.all(
+      club.eventList.map((id) => ctx.db.get(id)),
+    );
+
+    const now = Date.now();
+
+    const upcomingMeetings = events
+      .filter(
+        (e): e is Doc<"events"> =>
+          !!e &&
+          e.eventType === "Meeting" &&
+          !!e.startTime &&
+          new Date(e.dateNumber).getTime() > now,
+      )
+      .sort(
+        (a, b) => new Date(a.dateNumber).getTime() - new Date(b.dateNumber).getTime(),
+      );
+
+    return upcomingMeetings[0]?.dateNumber ?? undefined;
   },
 });

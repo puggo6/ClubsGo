@@ -3,14 +3,14 @@ import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useUserData } from "@/hooks/useUserData";
-import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import Divider from "./divider";
 import GradientButton from "./gradientButton";
 import { OfficerMemberCard } from "./memberCard";
+import { StylizedSearch } from "./stylizedInput";
 
 type props = {
   clubMembers: Id<"users">[];
@@ -32,11 +32,11 @@ export default function AssignAdvisorsScreen({ clubMembers, clubId }: props) {
     ...(fullSchool?.adminList ?? []),
   ];
   const [filteredAdmins, setFilteredAdmins] = useState(
-    allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id)),
+    allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id))
   );
   useEffect(() => {
     setFilteredAdmins(
-      allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id)),
+      allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id))
     );
   }, [fullSchool]);
 
@@ -57,7 +57,7 @@ export default function AssignAdvisorsScreen({ clubMembers, clubId }: props) {
     return filteredAdmins.filter(
       (u) =>
         searchQuery.length === 0 ||
-        u?.fullName.toLowerCase().includes(searchQuery.toLowerCase()),
+        u?.fullName.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery, filteredAdmins]);
 
@@ -112,36 +112,13 @@ export default function AssignAdvisorsScreen({ clubMembers, clubId }: props) {
         <Text style={styles.divTitle}>All Admins</Text>
         <Divider />
       </View>
-      <View
-        style={{
-          flexDirection: "column",
-          backgroundColor: "#1c1c1c",
-          borderWidth: 1,
-          borderColor: "#2a2a2a",
-          borderRadius: 14,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          marginHorizontal: 16,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons name="search" size={20} color={COLORS.textSecondary} />
-          <TextInput
-            style={{
-              flex: 1,
-              fontSize: 16,
-              color: COLORS.textPrimary,
-              marginLeft: 8,
-            }}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={"Search"}
-            placeholderTextColor="#888"
-            autoCapitalize="sentences"
-          />
-        </View>
-      </View>
 
+      <StylizedSearch
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        placeholder="Search"
+        dark={false}
+      />
       <FlatList
         data={searchedAdmins}
         keyExtractor={(item) => item?._id.toString() ?? Math.random.toString()}

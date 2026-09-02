@@ -21,9 +21,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 export default function school() {
+    const insets = useSafeAreaInsets();
   const user = useUserData();
   const router = useRouter();
   const school = user?.userData.school;
@@ -95,18 +97,24 @@ export default function school() {
     });
   };
   return (
-    <View style={{ flex: 1 }}>
+    <View style={[{ flex: 1 }, ]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={{
           backgroundColor: COLORS.background,
           flex: 1,
         }}
-        contentContainerStyle={{}}
+        contentContainerStyle={{
+          paddingTop: insets.top,
+          marginBottom: insets.bottom,
+          marginRight: insets.right,
+          marginLeft: insets.left,
+        }}
       >
         <Pressable
           onPress={() => {
-            router.push("/settings");
+          
+            router.back();
           }}
           style={{ justifyContent: "flex-start", width: "100%" }}
         >

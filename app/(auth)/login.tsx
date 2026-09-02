@@ -3,19 +3,20 @@ import { COLORS } from "@/constants/theme";
 import { styles } from "@/styles/auth.styles";
 import { useSSO, useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function login() {
   const { startSSOFlow } = useSSO();
   const router = useRouter();
   const { user } = useUser(); // must be called inside a component
+  const redirectUrl = Linking.createURL("/sso-callback");
 
-  const redirectUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/sso-callback`
-      : "myapp://sso-callback"; // deep link for mobile
   const handleGoogleSignIn = async () => {
     try {
       const { createdSessionId, setActive } = await startSSOFlow({
@@ -39,7 +40,8 @@ export default function login() {
               ? require("@/assets/images/flatLogoTag.png")
               : require("@/assets/images/largeFlatLogoTag.png")
           }
-          style={!isWeb() ? styles.topLogo : { width: "100%", height: 130 }}
+          style={!isWeb() ? { width: "100%" } : { width: "100%", height: 130 }}
+          resizeMode="contain"
         />
       </View>
 

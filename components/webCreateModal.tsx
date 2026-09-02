@@ -1,4 +1,5 @@
 // components/WebCreateModal.tsx
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { AntDesign } from "@expo/vector-icons";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
@@ -56,33 +57,45 @@ export const ManagementModal = ({
   width,
 }: Props) => {
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      {/* backdrop */}
-      <View style={styles.backdrop}>
-        {/* stop press from closing when clicking inside modal */}
-        <View style={[styles.modal, width ? { width: width } : {}]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <AntDesign name="close" size={20} color={COLORS.textSecondary} />
-            </Pressable>
-          </View>
-          <View style={styles.divider} />
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={{ paddingBottom: 24 }}
-            showsVerticalScrollIndicator={false}
+    <Pressable onPress={onClose}>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        {/* backdrop */}
+        <View style={styles.backdrop}>
+          {/* stop press from closing when clicking inside modal */}
+          <View
+            style={[
+              styles.modal,
+              width ? { width: width } : {},
+              !isWeb() ? { width: "90%" } : {},
+            ]}
           >
-            {children}
-          </ScrollView>
+            <View style={styles.header}>
+              <Text style={styles.title}>{title}</Text>
+              <Pressable onPress={onClose} style={styles.closeButton}>
+                <AntDesign
+                  name="close"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+              </Pressable>
+            </View>
+            <View style={styles.divider} />
+            <ScrollView
+              style={styles.content}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+    </Pressable>
   );
 };
 const styles = StyleSheet.create({

@@ -2,7 +2,7 @@ import { COLORS } from "@/constants/theme";
 import { useUserData } from "@/hooks/useUserData";
 import { useAuth } from "@clerk/clerk-expo";
 import { Stack, useRouter, useSegments } from "expo-router";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function InitialLayout() {
@@ -55,7 +55,16 @@ export default function InitialLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: COLORS.background,
+          },
+          animation: "slide_from_right",
+          presentation: "card",
+        }}
+      />
     </View>
   );
 }

@@ -47,8 +47,7 @@ export const styles = StyleSheet.create({
     maxHeight: 280,
   },
   topLogo: {
-    width: 512 * 0.75,
-    height: 128 * 0.75,
+    width: "100%",
   },
   loginSection: {
     width: "100%",

@@ -164,7 +164,7 @@ export default function TabLayout() {
           tabBarStyle: {
             backgroundColor: COLORS.background,
             borderTopWidth: 0,
-            position: "absolute",
+
             elevation: 0,
             height: 40,
             paddingBottom: 80,
@@ -256,15 +256,15 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person-circle" size={size} color={color} />
+            ),
+          }}
+        />
       </Tabs>
-      <Tabs.Screen
-        name="settings"
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
-          ),
-        }}
-      />
     </View>
   );
 }

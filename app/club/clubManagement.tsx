@@ -1,7 +1,6 @@
 import Announcement from "@/components/announcement";
 import Calendar from "@/components/calendar";
 import ClubFAB from "@/components/clubFAB";
-import ClubLogo from "@/components/clubLogo";
 
 import AssignAdvisorsScreen from "@/components/assignAdvisorsScreen";
 import AssignOfficersScreen, {
@@ -117,7 +116,7 @@ export default function clubManagement() {
   const [isAdmin, setIsAdmin] = useState<boolean>(
     currentUser?.userData._id
       ? (club?.advisors ?? []).includes(currentUser?.userData._id)
-      : false,
+      : false
   );
   useEffect(() => {
     if (currentUser?.userData._id && club?.advisors) {
@@ -138,7 +137,7 @@ export default function clubManagement() {
   const validAnnouncements = useMemo(() => {
     return (club?.announcementList ?? []).filter(
       (announcement): announcement is Doc<"announcements"> =>
-        announcement !== null,
+        announcement !== null
     );
   }, [club?.announcementList]);
 
@@ -157,7 +156,7 @@ export default function clubManagement() {
   const eventDaySet = new Set(
     eventList
       ? eventList.map((event) => dayjs(event?.dateNumber).format("YYYY-MM-DD"))
-      : [],
+      : []
   );
 
   const WebEventPanel = () => (
@@ -225,9 +224,11 @@ export default function clubManagement() {
   };
   const [modalVisable, setModalVisable] = useState(false);
   const [eventSelected, setEventSelected] = useState(true);
-  const [bottomSheetType, setBottomSheetType] = useState(0); // 0=Event, 1 = Announcement, 2 = editEvent, 3 = editAnnouncement, 4 = userInfo, 5 = leadership roles, 6 = announcements
+  const [bottomSheetType, setBottomSheetType] = useState<number | undefined>(
+    undefined
+  ); // 0=Event, 1 = Announcement, 2 = editEvent, 3 = editAnnouncement, 4 = userInfo, 5 = leadership roles, 6 = announcements
   const [editEvent, setEditEvent] = useState<Id<"events"> | undefined>(
-    undefined,
+    undefined
   );
   const [eventIcon] = useState(new Animated.Value(40));
   const [announcementIcon] = useState(new Animated.Value(40));
@@ -317,12 +318,12 @@ export default function clubManagement() {
   }, []);
 
   const openSheet = useCallback(() => {
-    if (!isWeb()) {
+    if (!isWeb() && bottomSheetType !== 2) {
       bottomSheetRef.current?.expand();
     } else setModalOpen(true);
-  }, []);
+  }, [bottomSheetType]);
   const closeSheet = useCallback(() => {
-    if (!isWeb()) {
+    if (!isWeb() && bottomSheetType === 2) {
       bottomSheetRef.current?.close();
     } else setModalOpen(false);
   }, []);
@@ -337,7 +338,7 @@ export default function clubManagement() {
   const [selectedDay, setSelectedDay] = useState(dayjs());
 
   const selectedEvents = club?.eventList.filter((event) =>
-    dayjs(event?.dateNumber).isSame(selectedDay, "day"),
+    dayjs(event?.dateNumber).isSame(selectedDay, "day")
   );
   const handleDayPress = (day: Dayjs) => {
     if (pressedDay?.isSame(day, "day")) {
@@ -373,7 +374,7 @@ export default function clubManagement() {
     .filter((e) => e.eventType === "Meeting")
     .filter((e) => dayjs(e.dateNumber).isAfter(dayjs()));
   const sortedNonMeetings = sortedEvents.filter(
-    (e) => e.eventType !== "Meeting",
+    (e) => e.eventType !== "Meeting"
   );
 
   const [pressedDay, setPressedDay] = useState<Dayjs | undefined>(undefined);
@@ -489,14 +490,17 @@ export default function clubManagement() {
       showsVerticalScrollIndicator={false}
     >
       <View
-        style={{
-          width: "100%",
-          backgroundColor: club?.clubColor,
-          borderRadius: 30,
-          height: 150,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        style={[
+          {
+            width: isWeb() ? "100%" : "95%",
+            backgroundColor: club?.clubColor,
+            borderRadius: 30,
+            height: 150,
+            alignItems: "center",
+            justifyContent: "center",
+            alignSelf: "center",
+          },
+        ]}
       >
         <Text
           style={{
@@ -626,7 +630,7 @@ export default function clubManagement() {
           (u) =>
             u &&
             !club?.pendingMembers?.includes(u.user) &&
-            !club?.advisors?.includes(u?.userId),
+            !club?.advisors?.includes(u?.userId)
         )
         .map((m) => m.user)
         .sort((a, b) => {
@@ -722,25 +726,31 @@ export default function clubManagement() {
             renderSectionHeader={({ section: { title } }) => (
               <>
                 <View style={styles.divSpace}>
-                  <Text style={styles.divTitle}>
-                    {title}
-                    {title === "Advisors" &&
-                      isHeadAdmin(currentUser?.userData.role) && (
+                  <TouchableOpacity
+                    style={{ flex: 1 }}
+                    onPress={canEditClub ? handleAssignAdvisors : () => void {}}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      style={styles.divTitle}
+                    >
+                      {title}
+                      {title === "Advisors" && canEditClub && (
                         <>
                           <Text> - </Text>
-                          <TouchableOpacity onPress={handleAssignAdvisors}>
-                            <Text
-                              style={{
-                                color: "#1D4ED8",
-                                textDecorationLine: "underline",
-                              }}
-                            >
-                              Assign Advisors
-                            </Text>
-                          </TouchableOpacity>
+                          <Text
+                            style={{
+                              color: "#1D4ED8",
+                              textDecorationLine: "underline",
+                            }}
+                          >
+                            Assign Advisors
+                          </Text>
                         </>
                       )}
-                  </Text>
+                    </Text>
+                  </TouchableOpacity>
                 </View>
                 <View
                   style={{
@@ -771,6 +781,7 @@ export default function clubManagement() {
     });
   };
   const handleEditEvent = (event: Doc<"events">) => {
+    console.log("yo");
     setBottomSheetType(2);
     setEditEvent(event._id);
     openSheet();
@@ -815,14 +826,14 @@ export default function clubManagement() {
 
   const BottomSheetComponent = () => {
     return (
-      <View style={{ flex: 1, alignItems: "center" }}>
+      <View style={{ alignItems: "center" }}>
         <View
           style={[
             styles.modalContainer,
             { width: bottomSheetType === 9 ? "100%" : "90%" },
           ]}
         >
-          {club && bottomSheetType === 0 ? (
+          {bottomSheetType === 0 ? (
             <CreateEvent
               inputClub={clubId as Id<"clubs">}
               back={toggleCreateScreen}
@@ -959,7 +970,7 @@ export default function clubManagement() {
       })
       .map((announcement) => {
         const matchingEvent = (club?.eventList ?? []).find(
-          (event) => event?._id === announcement.event,
+          (event) => event?._id === announcement.event
         );
 
         return {
@@ -1421,7 +1432,7 @@ export default function clubManagement() {
         </>
       )}
       {/* animated club header for info tab */}
-      {!isWeb() && (
+      {/*!isWeb() && (
         <Animated.View
           style={[
             styles.infoHeader,
@@ -1514,10 +1525,10 @@ export default function clubManagement() {
             }}
           />
         </Animated.View>
-      )}
+      )*/}
       {/* Icon to open hanmburger menu */}
       {!isWeb() && (
-        <Animated.View
+        <View
           style={{
             alignItems: "center",
             flexDirection: "row",
@@ -1525,7 +1536,6 @@ export default function clubManagement() {
             width: "100%",
             paddingHorizontal: 10,
             paddingTop: 0,
-            transform: [{ translateY: contentTranslateY }],
           }}
         >
           <TouchableOpacity onPress={toggleMenu}>
@@ -1563,7 +1573,7 @@ export default function clubManagement() {
               </Pressable>
             </View>
           )}
-        </Animated.View>
+        </View>
       )}
       {isWeb() && inEventTab && (
         <View
@@ -1606,7 +1616,7 @@ export default function clubManagement() {
           flex: 1,
 
           transform: [
-            { translateY: isWeb() ? new Animated.Value(0) : contentTranslateY },
+            { translateY: true ? new Animated.Value(0) : contentTranslateY },
           ],
         }}
       >
@@ -1677,7 +1687,7 @@ export default function clubManagement() {
         A bottom sheet which appears when a date is pressed on the calendar, showing all events for that day.
         This is also where the user can create and edit events and announcements.
       */}
-      {!isWeb() ? (
+      {!isWeb() && bottomSheetType !== 2 ? (
         <BottomSheet
           ref={bottomSheetRef}
           onChange={handleSheetChanges}
@@ -1700,7 +1710,6 @@ export default function clubManagement() {
         >
           <BottomSheetScrollView
             style={{
-              flex: 1,
               padding: 0,
 
               backgroundColor: COLORS.surface,
@@ -1718,7 +1727,11 @@ export default function clubManagement() {
                         inClub={true}
                         onEvent={true}
                         onPress={
-                          event ? () => handleEditEvent(event) : () => {}
+                          event
+                            ? () => handleEditEvent(event)
+                            : () => {
+                                console.log("yooo");
+                              }
                         }
                         canDelete={isAdmin}
                         onDelete={
@@ -1761,7 +1774,6 @@ export default function clubManagement() {
             )}
             <TouchableWithoutFeedback
               onPressIn={Platform.OS === "web" ? undefined : Keyboard.dismiss}
-              style={{ flex: 1 }}
             >
               <BottomSheetComponent />
             </TouchableWithoutFeedback>

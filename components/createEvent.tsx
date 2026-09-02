@@ -24,7 +24,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import DismissKeyboardView from "./dismissKeyboardView";
 import EventTag, { availableEventTags } from "./eventTag";
 import { SizeGradientButton } from "./gradientButton";
 import StylizedInput from "./stylizedInput";
@@ -43,12 +42,15 @@ type editProps = {
 export default function CreateEvent({ inputClub, back, error }: props) {
   const [startedCreate, setStartedCreate] = useState(false);
   const [local, setLocal] = useState(true); // !local would indicate a global event (local events are club-scoped, global events are school-scoped)
-
+  console.log('inCreate')
   const [eventTitle, setEventTitle] = useState("");
   const currentUser = useUserData();
-  const currentSchool = useQuery(api.schools.getSchoolData, {
-    schoolId: currentUser?.userData.school?._id,
-  });
+  const currentSchool = useQuery(
+    api.schools.getSchoolData,
+    currentUser?.userData.school?._id
+      ? { schoolId: currentUser.userData.school._id }
+      : "skip",
+  );
   const [hasDescription, setHasDescription] = useState(false);
   const [eventDescription, setEventDescription] = useState("");
 
@@ -249,7 +251,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
         });
 
   return (
-    <DismissKeyboardView>
+    <View>
       <View style={{ paddingBottom: !back ? 60 : 0 }}>
         <View style={styles.header}>
           <Text style={styles.modalTitle}>Create an Event</Text>
@@ -690,7 +692,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
           </View>
         </View>
       </View>
-    </DismissKeyboardView>
+    </View>
   );
 }
 export function EditEvent({ inputEvent, back }: editProps) {
