@@ -1,34 +1,19 @@
-import { isHeadAdmin } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
-import { useUserData } from "@/hooks/useUserData";
+import { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import dayjs from "dayjs";
 import React from "react";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
 import { DashboardEventCard } from "./eventCard";
 const screenWidth = Dimensions.get("window").width;
-type props = {};
-export default function HomeDashboard() {
-  const currentDate = dayjs();
-  const currentUser = useUserData();
 
-  let masterClubs = currentUser?.userData.clubs ?? [];
-  const insets = useSafeAreaInsets();
-  if (
-    isHeadAdmin(currentUser?.userData.role) &&
-    currentUser?.userData.school?.clubList
-  )
-    masterClubs =
-      useQuery(api.clubs.getClubList, {
-        clubList: currentUser.userData.school?.clubList,
-      }) ?? [];
-
-  const clubIds = masterClubs.flatMap((club) => (club ? club.eventList : []));
-  const eventIds = [...clubIds, ...(currentUser?.userData.eventList ?? [])];
+type props = {
+  inputEventIds: Id<"events">[];
+};
+export default function HomeDashboard({ inputEventIds }: props) {
   let allEvents = useQuery(api.events.getManyEvents, {
-    eventIds: eventIds,
+    eventIds: inputEventIds,
   });
   let events = allEvents?.filter((e) => {
     return dayjs(e.dateNumber)
@@ -56,15 +41,22 @@ export default function HomeDashboard() {
 
     return 0;
   });
+  const isWeb = Platform.OS === "web";
   return (
-    <View style={{}}>
+    <View style={{ flex: 1, width: "100%" }}>
       <Text style={styles.nameText}>Today's Dashboard:</Text>
       {events?.length === 0 && (
         <Text style={styles.noText} adjustsFontSizeToFit numberOfLines={1}>
           No Upcomming Events!
         </Text>
       )}
-      <View>
+      <View
+        style={{
+          justifyContent: "flex-start",
+          marginLeft: 20,
+          width: "100%",
+        }}
+      >
         {events?.map((e) => (
           <DashboardEventCard event={e} onPress={() => {}} />
         ))}

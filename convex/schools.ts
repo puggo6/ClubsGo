@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { getAuthenticatedUser } from "./users";
@@ -7,10 +7,16 @@ export const createSchool = mutation({
   args: {
     name: v.string(),
     sName: v.string(),
+    key: v.string(),
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
-
+    const key = await ctx.db
+      .query("keys")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .unique();
+    if (!key) throw new ConvexError("KEY_DNE");
+    if (key.used) throw new ConvexError("KEY_USED");
     const code = generateJoinCode();
 
     const schoolId = await ctx.db.insert("schools", {
@@ -18,12 +24,19 @@ export const createSchool = mutation({
       shortName: args.sName,
       clubList: [],
       userList: [currentUser._id],
+      adminList: [currentUser._id],
       joinCode: code,
       eventList: [],
+      configurations: {
+        adminsNeedApproval: true,
+        clubAdminsNeedApproval: true,
+        globalSchoolPage: true,
+      },
     });
-
+    await ctx.db.patch(key._id, { schoolId, used: true });
     await ctx.db.patch(currentUser._id, {
       school: schoolId,
+      approvedAdmin: true,
     });
 
     console.log("before return");
@@ -34,6 +47,9 @@ export const createSchool = mutation({
 export const getSchoolData = query({
   args: {
     schoolId: v.optional(v.id("schools")),
+    includeClubs: v.optional(v.boolean()),
+    includeUsers: v.optional(v.boolean()),
+    includeEvents: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     if (!args.schoolId) return;
@@ -41,25 +57,34 @@ export const getSchoolData = query({
 
     if (!school) throw new Error("School not found");
 
-    const clubs = await Promise.all(
-      school.clubList.map((clubId) => ctx.db.get(clubId))
-    );
+    const clubs =
+      args.includeClubs === false
+        ? []
+        : await Promise.all(
+            school.clubList.map((clubId) => ctx.db.get(clubId)),
+          );
 
-    const users = await Promise.all(
-      school.userList.map((userId) => ctx.db.get(userId))
-    );
+    const users =
+      args.includeUsers === false
+        ? []
+        : await Promise.all(
+            school.userList.map((userId) => ctx.db.get(userId)),
+          );
 
     const admins = await Promise.all(
-      (school.adminList ?? []).map((userId) => ctx.db.get(userId))
+      (school.adminList ?? []).map((userId) => ctx.db.get(userId)),
     );
     const pendingAdminList = await Promise.all(
-      (school.pendingAdminList ?? []).map((userId) => ctx.db.get(userId))
+      (school.pendingAdminList ?? []).map((userId) => ctx.db.get(userId)),
     );
-    const events = await Promise.all(
-      school.eventList
-        ? school.eventList.map((eventId) => ctx.db.get(eventId))
-        : []
-    );
+    const events =
+      args.includeEvents === false
+        ? []
+        : await Promise.all(
+            school.eventList
+              ? school.eventList.map((eventId) => ctx.db.get(eventId))
+              : [],
+          );
 
     return {
       schoolName: school.name,
@@ -71,6 +96,7 @@ export const getSchoolData = query({
       eventList: events,
       adminList: admins,
       pendingAdminList,
+      configurations: school.configurations,
     };
   },
 });
@@ -138,7 +164,7 @@ export const removeDeletedUsersFromSchools = mutation({
     const originalUsers = school.userList ?? [];
 
     const filteredUsers = originalUsers.filter((id: string) =>
-      validUserIds.has(id)
+      validUserIds.has(id),
     );
 
     if (filteredUsers.length !== originalUsers.length) {
@@ -158,7 +184,7 @@ export const approveJoinRequest = mutation({
     const school = await ctx.db.get(args.schoolId);
     const user = await ctx.db.get(args.userId);
     const newPending = school?.pendingAdminList?.filter(
-      (id) => id !== args.userId
+      (id) => id !== args.userId,
     );
     await ctx.db.patch(args.schoolId, {
       pendingAdminList: newPending,
@@ -167,5 +193,77 @@ export const approveJoinRequest = mutation({
     await ctx.db.patch(args.userId, {
       approvedAdmin: true,
     });
+  },
+});
+export const updateSchoolConfig = mutation({
+  args: {
+    schoolId: v.optional(v.id("schools")),
+    adminApproval: v.boolean(),
+    clubAdminApproval: v.boolean(),
+    globalSchoolPage: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    if (!args.schoolId) return;
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) return;
+    await ctx.db.patch(args.schoolId, {
+      configurations: {
+        adminsNeedApproval: args.adminApproval,
+        clubAdminsNeedApproval: args.clubAdminApproval,
+        globalSchoolPage: args.globalSchoolPage,
+      },
+    });
+  },
+});
+
+export const deleteSchool = mutation({
+  args: {
+    schoolId: v.optional(v.id("schools")),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    if (!args.schoolId) return;
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) throw new ConvexError("SCHOOL_DNE");
+
+    // Only a head admin of this specific school can delete it
+    if (
+      currentUser.role !== "superAdmin" ||
+      currentUser.school?.toString() !== args.schoolId.toString()
+    ) {
+      throw new ConvexError("NOT_AUTHORIZED");
+    }
+
+    // Detach every user in the school (students, parents, admins) from it
+    const users = await Promise.all(
+      school.userList.map((userId) => ctx.db.get(userId)),
+    );
+    for (const user of users) {
+      if (!user) continue;
+      await ctx.db.patch(user._id, {
+        school: undefined,
+        approvedAdmin: undefined,
+      });
+    }
+
+    // Delete every club that belongs to this school
+    for (const clubId of school.clubList) {
+      const club = await ctx.db.get(clubId);
+      if (club) {
+        await ctx.db.delete(clubId);
+      }
+    }
+
+    // Delete every event directly tied to the school (e.g. global events)
+    if (school.eventList) {
+      for (const eventId of school.eventList) {
+        const event = await ctx.db.get(eventId);
+        if (event) {
+          await ctx.db.delete(eventId);
+        }
+      }
+    }
+
+    await ctx.db.delete(args.schoolId);
   },
 });

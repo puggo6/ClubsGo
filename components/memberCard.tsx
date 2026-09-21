@@ -1,14 +1,17 @@
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
-import { Entypo } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import { Entypo, FontAwesome, FontAwesome5 } from "@expo/vector-icons";
+import dayjs from "dayjs";
+import { Image } from "expo-image";
+import { useEffect, useState } from "react";
 import {
-  Image,
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import CustomProfile from "./customProfile";
 
 type props = {
   userPFP?: string;
@@ -17,6 +20,7 @@ type props = {
   isMember: boolean;
   onPress: () => void;
   approvalCard: boolean;
+  role?: string;
 };
 type schoolProps = {
   userPFP?: string;
@@ -25,6 +29,7 @@ type schoolProps = {
   isMember: boolean;
   onPress: () => void;
   approvalCard: boolean;
+  isHead?: boolean;
 };
 type studentProps = {
   userPFP?: string;
@@ -40,6 +45,18 @@ type childProps = {
   email: string;
   approved: boolean;
   parent?: boolean;
+  onPress?: () => void;
+  onCardPress?: () => void;
+  remove?: () => void;
+};
+
+type officerProps = {
+  userPFP?: string;
+  name: string;
+  email: string;
+  role?: string;
+  dateJoined?: string;
+  isEditing?: boolean;
   onPress: () => void;
 };
 
@@ -50,6 +67,7 @@ export default function MemberCard({
   isMember,
   onPress,
   approvalCard,
+  role,
 }: props) {
   let userStatus = "Pending approval";
   let userColor = "#FFB300";
@@ -61,18 +79,24 @@ export default function MemberCard({
 
   useEffect(() => {
     if (!imageUrl && userPFP) {
-      setImageUrl(userPFP); // Fetch once
+      setImageUrl(userPFP);
     }
   }, []);
 
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        {imageUrl && (
+        {imageUrl ? (
           <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
+        ) : (
+          <CustomProfile username={name} />
         )}
         <View style={styles.nameContainer}>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.userName}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.userName, isWeb() ? { width: "auto" } : {}]}
+          >
             {name}
           </Text>
           <Text style={styles.userInfo}>
@@ -80,9 +104,24 @@ export default function MemberCard({
             <Text style={{ color: COLORS.accentA }}>{dateJoined}</Text>
           </Text>
           <Text style={styles.userInfo}>
-            Status: <Text style={{ color: userColor }}>{userStatus}</Text>
+            Status:{" "}
+            <Text style={{ color: userColor }}>
+              {userStatus}
+              {role ? (
+                <Text
+                  style={{
+                    color: COLORS.primary,
+                    fontFamily: "OpenSansSemiBold",
+                  }}
+                >
+                  {" "}
+                  - {role}
+                </Text>
+              ) : (
+                <></>
+              )}
+            </Text>
           </Text>
-          <Text style={styles.userInfo}>Approval: {String(approvalCard)}</Text>
         </View>
         {approvalCard && (
           <View style={styles.outerButton}>
@@ -107,10 +146,11 @@ export function SchoolMemberCard({
   email,
   isMember,
   onPress,
+  isHead,
   approvalCard,
 }: schoolProps) {
   let userStatus = "Pending approval";
-  let userColor = "#FFB300";
+  let userColor = String(COLORS.userColor);
   if (isMember) {
     userStatus = "Approved";
     userColor = COLORS.publicGreen;
@@ -126,18 +166,32 @@ export function SchoolMemberCard({
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        {imageUrl && (
+        {!!imageUrl && (
           <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
         )}
         <View style={styles.nameContainer}>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.userName}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.userName, isWeb() ? { width: "auto" } : {}]}
+          >
             {name}
           </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.userEmail}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.userEmail, isWeb() ? { width: "auto" } : {}]}
+          >
             {email}
           </Text>
           <Text style={styles.userInfo}>
-            Status: <Text style={{ color: userColor }}>{userStatus}</Text>
+            Status:{" "}
+            <Text style={{ color: userColor }}>
+              {userStatus}
+              {isHead && (
+                <Text style={{ color: COLORS.primary }}> - Head Admin</Text>
+              )}
+            </Text>
           </Text>
         </View>
         {approvalCard && (
@@ -174,21 +228,30 @@ export function StudentMemberCard({
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isWeb() ? { width: "100%" } : {}]}>
       <View style={styles.contentContainer}>
-        {imageUrl && (
+        {!!imageUrl && (
           <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
         )}
         <View style={styles.nameContainer}>
           <Text numberOfLines={1} adjustsFontSizeToFit style={styles.userName}>
             {name}
           </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.userEmail}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.userEmail, isWeb() ? { width: "auto" } : {}]}
+          >
             {email}
           </Text>
         </View>
 
-        <View style={styles.outerButton}>
+        <View
+          style={[
+            styles.outerButton,
+            isWeb() ? { alignItems: "flex-end", flex: 1 } : {},
+          ]}
+        >
           <Pressable
             onPress={onPress}
             style={({ pressed }) => [styles.button, pressed && styles.pressed]}
@@ -208,6 +271,8 @@ export function ChildCard({
   approved,
   parent = false,
   onPress,
+  remove,
+  onCardPress,
 }: childProps) {
   const [imageUrl, setImageUrl] = useState("");
 
@@ -223,29 +288,130 @@ export function ChildCard({
     userColor = COLORS.publicGreen;
   }
   return (
+    <TouchableOpacity
+      onPress={onCardPress}
+      activeOpacity={onCardPress ? 0.6 : 1}
+    >
+      <View style={styles.container}>
+        <View style={styles.contentContainer}>
+          {!!imageUrl && (
+            <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
+          )}
+          <View style={styles.nameContainer}>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={[styles.userName, isWeb() ? { width: "auto" } : {}]}
+            >
+              {name}
+            </Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={[styles.userEmail, isWeb() ? { width: "auto" } : {}]}
+            >
+              {email}
+            </Text>
+            <Text style={styles.userInfo}>
+              Status: <Text style={{ color: userColor }}>{userStatus}</Text>
+            </Text>
+          </View>
+          {!approved && parent && (
+            <TouchableOpacity onPress={onPress} style={{ flex: 1 }}>
+              <View style={styles.checkButton}>
+                <Entypo name="check" size={32} color={COLORS.textPrimary} />
+              </View>
+            </TouchableOpacity>
+          )}
+          {remove && approved && (
+            <TouchableOpacity onPress={remove} style={{ flex: 1 }}>
+              <View style={styles.checkButton}>
+                <FontAwesome
+                  name="remove"
+                  size={32}
+                  color={COLORS.textPrimary}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+export function OfficerMemberCard({
+  userPFP,
+  name,
+  dateJoined,
+  role,
+  onPress,
+  email,
+  isEditing,
+}: officerProps) {
+  const [imageUrl, setImageUrl] = useState("");
+
+  useEffect(() => {
+    if (!imageUrl && userPFP) {
+      setImageUrl(userPFP);
+    }
+  }, []);
+  const formattedDate = dayjs(dateJoined).format("MM/DD/YYYY");
+  return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        {imageUrl && (
+        {imageUrl ? (
           <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
+        ) : (
+          <CustomProfile username={name} />
         )}
         <View style={styles.nameContainer}>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.userName}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.userName, isWeb() ? { width: "auto" } : {}]}
+          >
             {name}
           </Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={styles.userEmail}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.userInfo, isWeb() ? { width: "auto" } : {}]}
+          >
             {email}
           </Text>
+          {dateJoined && (
+            <Text style={styles.userInfo}>
+              Date Joined:{" "}
+              <Text style={{ color: COLORS.accentA }}>{formattedDate}</Text>
+            </Text>
+          )}
           <Text style={styles.userInfo}>
-            Status: <Text style={{ color: userColor }}>{userStatus}</Text>
+            Role:{" "}
+            <Text
+              style={{ color: role ? COLORS.primary : styles.userInfo.color }}
+            >
+              {role ? role : "N/A"}
+            </Text>
           </Text>
         </View>
-        {!approved && parent && (
-          <TouchableOpacity onPress={onPress} style={{ flex: 1 }}>
-            <View style={styles.checkButton}>
-              <Entypo name="check" size={32} color={COLORS.textPrimary} />
-            </View>
-          </TouchableOpacity>
-        )}
+
+        <View style={styles.outerButton}>
+          <Pressable
+            onPress={onPress}
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.pressed,
+              isEditing ? { backgroundColor: COLORS.privateRed } : {},
+            ]}
+          >
+            {isEditing ? (
+              <FontAwesome5 name="minus" size={24} color={COLORS.textPrimary} />
+            ) : (
+              <FontAwesome5 name="plus" size={24} color={COLORS.textPrimary} />
+            )}
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -266,7 +432,7 @@ export function SmallMemberCard({ userPFP, name }: schoolProps) {
   return (
     <View style={styles.container}>
       <View style={[styles.contentContainer]}>
-        {imageUrl && (
+        {!!imageUrl && (
           <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
         )}
 
@@ -299,7 +465,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: "PoppinsMedium",
     color: COLORS.textPrimary,
-    alignSelf: "center",
+    alignSelf: "flex-start",
     width: 150,
   },
   userEmail: {

@@ -1,7 +1,7 @@
 import { styles } from "@/styles/calendar.styles";
-import { Text } from "@react-navigation/elements";
-import React, { useState } from "react";
-import { Pressable, View } from "react-native";
+
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
 
 type props = {
   day: number;

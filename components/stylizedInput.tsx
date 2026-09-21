@@ -1,7 +1,15 @@
 import { COLORS } from "@/constants/theme";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  DimensionValue,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useDefaultStyles } from "react-native-ui-datepicker";
 
 type props = {
@@ -13,8 +21,15 @@ type props = {
   capitalize?: boolean;
   filterPress?: () => void;
   wordCapitalize?: boolean;
+  width?: DimensionValue;
+  bottomSheet?: boolean;
 };
 
+type containerProps = {
+  label?: string;
+  dark: boolean;
+  children?: React.ReactNode;
+};
 type customProps = {
   label?: string;
   value: Date;
@@ -30,30 +45,54 @@ export default function StylizedInput({
   dark = false,
   capitalize = false,
   wordCapitalize = false,
+  width,
+  bottomSheet,
 }: props) {
   const [inputHeight, setInputHeight] = useState(40);
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, width ? { width: width } : {}]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <TextInput
-        style={[
-          styles.input,
-          dark ? { backgroundColor: COLORS.background } : null,
-          { textAlignVertical: "top" },
-        ]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#888"
-        multiline
-        numberOfLines={1}
-        autoCapitalize={
-          capitalize ? "characters" : wordCapitalize ? "words" : "sentences"
-        }
-      />
+      {bottomSheet ? (
+        <BottomSheetTextInput
+          scrollEnabled={false}
+          style={[
+            styles.input,
+            dark ? { backgroundColor: COLORS.background } : null,
+            { textAlignVertical: "top" },
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#888"
+          multiline
+          numberOfLines={1}
+          autoCapitalize={
+            capitalize ? "characters" : wordCapitalize ? "words" : "sentences"
+          }
+        />
+      ) : (
+        <TextInput
+          scrollEnabled={false}
+          style={[
+            styles.input,
+            dark ? { backgroundColor: COLORS.background } : null,
+            { textAlignVertical: "top" },
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#888"
+          multiline
+          numberOfLines={1}
+          autoCapitalize={
+            capitalize ? "characters" : wordCapitalize ? "words" : "sentences"
+          }
+        />
+      )}
     </View>
   );
 }
+
 export function LargeStylizedInput({
   label,
   value,
@@ -138,6 +177,28 @@ export function StylizedSearch({
       <Pressable onPress={filterPress}>
         <AntDesign name="filter" color={COLORS.textSecondary} size={20} />
       </Pressable>
+    </View>
+  );
+}
+export function StylizedContainer({
+  label,
+
+  dark = false,
+  children,
+}: containerProps) {
+  const [inputHeight, setInputHeight] = useState(40);
+  return (
+    <View style={styles.container}>
+      {label && <Text style={styles.label}>{label}</Text>}
+      <View
+        style={[
+          styles.input,
+          dark ? { backgroundColor: COLORS.background } : null,
+          ,
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 }

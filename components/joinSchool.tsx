@@ -1,3 +1,4 @@
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
@@ -6,7 +7,7 @@ import { useMutation } from "convex/react";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Keyboard,
   Platform,
@@ -18,7 +19,10 @@ import Toast from "react-native-toast-message";
 import GradientButton from "./gradientButton";
 import StylizedInput from "./stylizedInput";
 
-export default function JoinSchool() {
+type props = {
+  onSwitch?: () => void;
+};
+export default function JoinSchool({ onSwitch }: props) {
   const [code, setCode] = useState("");
   const currentUser = useUserData();
   const userJoinSchool = useMutation(api.users.joinSchool);
@@ -79,7 +83,22 @@ export default function JoinSchool() {
             capitalize={true}
           />
         </View>
-        <GradientButton title="Join" onPress={() => handelJoinSchool(code)} />
+
+        <GradientButton
+          title="Join"
+          onPress={() => handelJoinSchool(code)}
+          fixSpacing={isWeb()}
+        />
+        {onSwitch && (
+          <View style={styles.existingSchoolPrompt}>
+            <Text style={styles.existingSchoolText}>
+              Your school or institution not yet created?{" "}
+              <Text onPress={onSwitch} style={styles.existingSchoolLink}>
+                Create a new school →
+              </Text>
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableWithoutFeedback>
   );

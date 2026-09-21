@@ -1,41 +1,47 @@
 import Tag, { availableTags } from "@/components/tag";
-import { COLORS } from "@/constants/theme";
+import { CLUB_COLORS, COLORS, getRandomColor } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/create.styles";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
-import { Picker } from "@react-native-picker/picker";
 import { useMutation, useQuery } from "convex/react";
 import dayjs from "dayjs";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 
 import { Id } from "@/convex/_generated/dataModel";
+import { Picker } from "@react-native-picker/picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
-  Keyboard,
   KeyboardAvoidingView,
   LayoutChangeEvent,
   Platform,
   Pressable,
-  SafeAreaView,
+  StyleSheet,
   Text,
-  TouchableWithoutFeedback,
+  TouchableOpacity,
   View,
 } from "react-native";
-import { ScrollView, Switch, TextInput } from "react-native-gesture-handler";
+import { ScrollView, Switch } from "react-native-gesture-handler";
 import { DatePickerModal, TimePickerModal } from "react-native-paper-dates";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { handleEventDate } from "./createEvent";
+import DismissKeyboardView from "./dismissKeyboardView";
 import { ManualEventCard } from "./eventCard";
 import GradientButton, { MonochromeButton } from "./gradientButton";
-import StylizedInput, { LargeStylizedInput } from "./stylizedInput";
+import StylizedInput, {
+  LargeStylizedInput,
+  StylizedContainer,
+} from "./stylizedInput";
+
+const isWeb = Platform.OS === "web";
 
 type props = {
   onCreate: () => void;
@@ -45,16 +51,16 @@ type props = {
 
 export default function CreateSceenComp({ onCreate, editing, club }: props) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const fullClub = club
     ? useQuery(api.clubs.getClubData, { clubId: club })
     : undefined;
   const [clubTitle, setTitle] = useState(fullClub?.name ?? "");
   const [description, setDescription] = useState(fullClub?.description ?? "");
-
   const [clubPublic, setClubPublic] = useState(false);
-  const [dummyText, setDummyText] = useState("");
   const [eventStartTime, setEventStartTime] = useState("");
   const [eventEndTime, setEventEndTime] = useState("");
+
   const [startTimePicker, setStartTimePicker] = useState(false);
   const [endTimePicker, setEndTimePicker] = useState(false);
 
@@ -68,9 +74,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
       t !== fullClub?.tags[2],
   );
   const [freeTags, setFreeTags] = useState<string[]>(initialTags);
-
   const [expanded, setExpanded] = useState(fullClub?.restricted ?? false);
-
   const [prereqs, setPrereqs] = useState(
     fullClub?.restricted2?.prerequisites ?? [""],
   );
@@ -80,18 +84,14 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     updated[index] = text;
     setPrereqs(updated);
   };
+  const handleAdd = () => setPrereqs([...prereqs, ""]);
+  const handleRemove = (index: number) =>
+    setPrereqs(prereqs.filter((_, i) => i !== index));
 
-  const handleAdd = () => {
-    setPrereqs([...prereqs, ""]);
-  };
-
-  const handleRemove = (index: number) => {
-    const updated = prereqs.filter((_, i) => i !== index);
-    setPrereqs(updated);
-  };
   const tryoutDatesFix = fullClub?.restricted1?.tryoutDate
-    ? fullClub?.restricted1?.tryoutDate.map((d) => new Date(d))
+    ? fullClub.restricted1.tryoutDate.map((d) => new Date(d))
     : undefined;
+
   const [appDescription, setAppDescription] = useState(
     fullClub?.restricted0?.applicationDesc ?? "",
   );
@@ -116,15 +116,16 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     fullClub?.expandedDescription ?? "",
   );
   const [clubRules, setClubRules] = useState(fullClub?.clubRules ?? "");
-
   const [meetingLoc, setMeetingLoc] = useState(fullClub?.meetingLocation ?? "");
+  const [meetingDayTime, setMeetingDayTime] = useState(
+    fullClub?.meetingDayTime ?? "",
+  );
   const [frequency, setFrequency] = useState<number | undefined>(
     fullClub?.meetingFreq ?? undefined,
   );
+
   const { width } = Dimensions.get("window");
-  const toggleExpanded = () => {
-    setExpanded(!expanded);
-  };
+  const toggleExpanded = () => setExpanded(!expanded);
 
   const [restricted, setRestricted] = useState(fullClub?.restricted ?? false);
   const [restrictedType, setRestrictedType] = useState<number>(
@@ -142,7 +143,6 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
   };
 
   let cleanClubs = useMutation(api.schools.cleanClubListOther);
-
   const createClub = useMutation(api.clubs.createClub);
   const updateClub = useMutation(api.clubs.updateClubInfo);
   const currentUser = useUserData();
@@ -151,20 +151,13 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
 
   const [restrictedHeight, setRestrictedHeight] = useState(50);
   const [height, setHeight] = useState(0);
-  let sportsTeam =
-    selectedTags[0] === "Sports" ||
-    selectedTags[1] === "Sports" ||
-    selectedTags[2] === "Sports";
+
+  let sportsTeam = selectedTags.includes("Sports");
   useEffect(() => {
-    sportsTeam =
-      selectedTags[0] === "Sports" ||
-      selectedTags[1] === "Sports" ||
-      selectedTags[2] === "Sports";
+    sportsTeam = selectedTags.includes("Sports");
   }, [selectedTags]);
 
-  const [height, setHeight] = useState(0);
   const tagContentHeight = useSharedValue(0);
-
   const animatedStyle = useAnimatedStyle(() => ({
     height: tagContentHeight.value,
     overflow: "hidden",
@@ -176,34 +169,28 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     });
   }, [expanded, height]);
 
-  const pagerRef = useRef<PagerView>(null);
+  const [animPage, setAnimPage] = useState(0);
+  const pageHeights = useRef<number[]>([]);
+  const [currentHeight, setCurrentHeight] = useState(0);
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(
+    fullClub?.clubColor ?? getRandomColor(),
+  );
+  const restrictedAnimatedStyle = useAnimatedStyle(() => ({
+    height: restricted ? withTiming(restrictedHeight) : withTiming(0),
+  }));
 
-  const [step, setStep] = useState(0);
-  const MAX_STEP = 2;
-  const nextStep = () => (step < MAX_STEP ? setStep((prev) => prev + 1) : {});
-  const prevStep = () => (step > 0 ? setStep((prev) => prev - 1) : {});
+  const frequencyOptions = [
+    { label: "Daily", value: 4 },
+    { label: "Weekly", value: 0 },
+    { label: "Biweekly", value: 1 },
+    { label: "Monthly", value: 2 },
+    { label: "As Needed", value: 3 },
+  ];
 
-  const restrictedAnimatedStyle = useAnimatedStyle(() => {
-    const animatedHeight = restricted
-      ? withTiming(restrictedHeight)
-      : withTiming(0);
-    return {
-      height: animatedHeight,
-    };
-  });
-  const [height, setHeight] = useState(0);
   const onLayout = (event: LayoutChangeEvent) => {
     const layoutHeight = event.nativeEvent.layout.height;
-
-    if (layoutHeight !== 0 && layoutHeight !== height) {
-      setHeight(layoutHeight);
-    }
+    if (layoutHeight !== 0 && layoutHeight !== height) setHeight(layoutHeight);
   };
-
-  const [animPage, setAnimPage] = useState(0);
-  const [currentHeight, setCurrentHeight] = useState(0);
-  const pageHeights = useRef<number[]>([]);
-  const offset = useSharedValue(0);
 
   const pagesAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -212,7 +199,6 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
   }));
 
   if (!userSchoolId) {
-    console.error("userSchoolId is undefined");
     return (
       <View style={styles.container}>
         <Text style={styles.headerTitle}>Loading User Data...</Text>
@@ -220,11 +206,14 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     );
   }
 
-  const [test, setTest] = useState("");
-  const testInput = () => <TextInput />;
+  const goToPage = (newPage: number) => {
+    setAnimPage(newPage);
+    setCurrentHeight(pageHeights.current[newPage] || currentHeight);
+  };
+
   const handleCreate = async () => {
-    if (!clubTitle || !description || selectedTags.length === 0) return; // add display which reads "missing required fields"
-    let stringDates = [];
+    if (!clubTitle || selectedTags.length === 0) return;
+    let stringDates: string[] = [];
     if (tryoutDate && tryoutDate.length > 1) {
       for (let i = 0; i < tryoutDate.length; i++)
         stringDates[i] = tryoutDate[i].toISOString();
@@ -232,32 +221,31 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     const isApp = restrictedType === 0;
     const isTry = restrictedType === 1;
     const isPre = restrictedType === 2;
+    const isAP = restrictedType === 3; //app + pre
     try {
       await createClub({
-        name: clubTitle,
+        name: clubTitle.trim(),
         description,
+        clubColor: selectedColor,
         meetingFrequency: frequency,
         location: meetingLoc,
+        meetingDayTime: meetingDayTime,
         expandedDesc: detailedDesc,
-        clubRules: clubRules,
+        clubRules,
         tags: selectedTags,
-
-        restricted: restricted,
+        restricted,
         restrictedType: restricted ? restrictedType : undefined,
-
-        applicationDesc: isApp ? appDescription : undefined,
-        applicationLink: isApp ? appLink : undefined,
-        hasDeadline: isApp ? hasDeadline : false,
-        deadline: isApp ? deadline : undefined,
+        applicationDesc: isApp || isAP ? appDescription : undefined,
+        applicationLink: isApp || isAP ? appLink : undefined,
+        hasDeadline: isApp || isAP ? hasDeadline : false,
+        deadline: isApp || isAP ? deadline : undefined,
         tryoutDate: isTry ? stringDates : undefined,
         tryoutDesc: isTry ? tryoutDesc : undefined,
-        tryoutStartTime: eventStartTime ? eventStartTime : undefined,
-        tryoutEndTime: eventEndTime ? eventEndTime : undefined,
-        prerequisites: isPre ? prereqs : undefined,
-
-        currentDate: currentDate,
+        tryoutStartTime: eventStartTime || undefined,
+        tryoutEndTime: eventEndTime || undefined,
+        prerequisites: isPre || isAP ? prereqs : undefined,
+        currentDate,
       });
-
       await cleanClubs({ schoolId: userSchoolId });
       setTitle("");
       setDescription("");
@@ -270,13 +258,12 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
       setAppDescription("");
       setAppLink("");
       setDeadline("");
-
-      console.log("created!");
       onCreate();
     } catch (error) {}
   };
+
   const handleSave = async () => {
-    let stringDates = [];
+    let stringDates: string[] = [];
     if (tryoutDate && tryoutDate.length > 1) {
       for (let i = 0; i < tryoutDate.length; i++)
         stringDates[i] = String(tryoutDate[i]);
@@ -284,245 +271,250 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     const isApp = restrictedType === 0;
     const isTry = restrictedType === 1;
     const isPre = restrictedType === 2;
+    const isAP = restrictedType === 3; //app + pre
     try {
       if (club) {
         await updateClub({
           clubId: club,
+          clubColor: selectedColor,
           name: clubTitle,
           description,
           meetingFrequency: frequency,
           location: meetingLoc,
+          meetingDayTime: meetingDayTime,
           expandedDesc: detailedDesc,
-          clubRules: clubRules,
+          clubRules,
           tags: selectedTags,
-
-          restricted: restricted,
+          restricted,
           restrictedType: restricted ? restrictedType : undefined,
-
-          applicationDesc: isApp ? appDescription : undefined,
-          applicationLink: isApp ? appLink : undefined,
-          hasDeadline: isApp ? hasDeadline : false,
-          deadline: isApp ? String(deadline) : undefined,
+          applicationDesc: isApp || isAP ? appDescription : undefined,
+          applicationLink: isApp || isAP ? appLink : undefined,
+          hasDeadline: isApp || isAP ? hasDeadline : false,
+          deadline: isApp || isAP ? deadline : undefined,
           tryoutDate: isTry ? stringDates : undefined,
           tryoutDesc: isTry ? tryoutDesc : undefined,
-          prerequisites: isPre ? prereqs : undefined,
+          prerequisites: isPre || isAP ? prereqs : undefined,
         });
-      } else throw new Error("attempted to update club without club Id");
+      }
       await cleanClubs({ schoolId: userSchoolId });
-
       onCreate();
     } catch (error) {}
   };
-  const pages = [
-    <>
-      <View style={styles.inputsContainer}>
-        <StylizedInput
-          label="Club Name"
-          value={clubTitle}
-          onChangeText={setTitle}
-          placeholder="Enter club name I.E. 'Chess Club'"
-          dark={true}
-          wordCapitalize={true}
-        />
-        <StylizedInput
-          label="Club Description"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Enter a brief description of the club "
-          dark={true}
-        />
-        <View style={styles.tagInputContainer}>
-          <Text style={[styles.tagInputLabel, { fontFamily: "InterRegular" }]}>
-            Tags
-          </Text>
-          <Pressable onPress={toggleExpanded}>
-            <View style={styles.tagInput}>
-              {selectedTags.length == 0 && (
-                <Text style={{ color: "#888", fontSize: 16 }}>
-                  Add tags which apply to this club (Max 3)
-                </Text>
-              )}
-              <View style={styles.tagSelection}>
-                {selectedTags.map((tag) => (
-                  <Tag
-                    key={tag}
-                    category={tag}
-                    visable={true}
-                    onPress={() => deselectTag(tag)}
-                  />
-                ))}
-              </View>
-              {/* Placeholder render to get the expanded height (for reanimated expansion)*/}
-              <View
-                style={{ position: "absolute", opacity: 0, zIndex: -1 }}
-                onLayout={onLayout}
-              >
-                <View>
-                  {selectedTags.length == 0 && (
-                    <Tag category="placeholder" visable={false} />
-                  )}
-                  <View style={styles.divider} />
-                  <View style={styles.tagSelection}>
-                    {freeTags.map((tag) => (
-                      <Tag
-                        key={tag}
-                        category={tag}
-                        visable={true}
-                        onPress={() => selectTag(tag)}
-                      />
-                    ))}
-                  </View>
+
+  // ── shared section components ───────────────────────────────
+
+  const BasicInfoSection = () => (
+    <View style={isWeb ? webStyles.section : styles.inputsContainer}>
+      <StylizedInput
+        label="Club Name"
+        value={clubTitle}
+        onChangeText={setTitle}
+        placeholder="Enter club name I.E. 'Chess Club'"
+        dark={true}
+        wordCapitalize={true}
+      />
+      <StylizedInput
+        label="Short Club Description (Optional)"
+        value={description}
+        onChangeText={setDescription}
+        placeholder="Enter a brief description of the club"
+        dark={true}
+      />
+      <View style={styles.tagInputContainer}>
+        <Text style={[styles.tagInputLabel, { fontFamily: "InterRegular" }]}>
+          Tags
+        </Text>
+        <Pressable onPress={toggleExpanded}>
+          <View style={styles.tagInput}>
+            {selectedTags.length === 0 && (
+              <Text style={{ color: "#888", fontSize: 16 }}>
+                Add tags which apply to this club (Max 3)
+              </Text>
+            )}
+            <View style={styles.tagSelection}>
+              {selectedTags.map((tag) => (
+                <Tag
+                  key={tag}
+                  category={tag}
+                  visable={true}
+                  onPress={() => deselectTag(tag)}
+                />
+              ))}
+            </View>
+            <View
+              style={{ position: "absolute", opacity: 0, zIndex: -1 }}
+              onLayout={onLayout}
+            >
+              <View>
+                {selectedTags.length === 0 && (
+                  <Tag category="placeholder" visable={false} />
+                )}
+                <View style={styles.divider} />
+                <View style={styles.tagSelection}>
+                  {freeTags.map((tag) => (
+                    <Tag
+                      key={tag}
+                      category={tag}
+                      visable={true}
+                      onPress={() => selectTag(tag)}
+                    />
+                  ))}
                 </View>
               </View>
-
-              <Animated.View style={[animatedStyle, { overflow: "hidden" }]}>
-                <View>
-                  {selectedTags.length == 0 && (
-                    <Tag category="placeholder" visable={false} />
-                  )}
-
-                  <View style={styles.divider} />
-                  <View style={styles.tagSelection}>
-                    {freeTags.map((tag) => (
-                      <Tag
-                        key={tag}
-                        category={tag}
-                        visable={true}
-                        onPress={() => selectTag(tag)}
-                      />
-                    ))}
-                  </View>
+            </View>
+            <Animated.View style={[animatedStyle, { overflow: "hidden" }]}>
+              <View>
+                {selectedTags.length === 0 && (
+                  <Tag category="placeholder" visable={false} />
+                )}
+                <View style={styles.divider} />
+                <View style={styles.tagSelection}>
+                  {freeTags.map((tag) => (
+                    <Tag
+                      key={tag}
+                      category={tag}
+                      visable={true}
+                      onPress={() => selectTag(tag)}
+                    />
+                  ))}
                 </View>
-              </Animated.View>
-            </View>
-          </Pressable>
-        </View>
-        <Pressable
-          onPress={() => {
-            setRestricted(!restricted);
-          }}
-        >
-          <View style={styles.restrictedContainer}>
-            <View style={styles.lockContainer}>
-              <Entypo
-                name={restricted ? "lock" : "lock-open"}
-                style={{
-                  color: restricted ? COLORS.privateRed : COLORS.publicGreen,
-                }}
-                size={28}
-              />
-            </View>
-
-            <Text style={styles.restrictedText}>
-              {!restricted
-                ? "The club is open to all students"
-                : "Students must " +
-                  (restrictedType === 0
-                    ? "complete an application"
-                    : restrictedType === 1
-                      ? "try out"
-                      : "complete prerequisites") +
-                  " to join the club"}
-            </Text>
+              </View>
+            </Animated.View>
           </View>
-          <Animated.View style={[restrictedAnimatedStyle, {}]}>
+        </Pressable>
+      </View>
+
+      <Pressable onPress={() => setRestricted(!restricted)}>
+        <View style={styles.restrictedContainer}>
+          <View style={styles.lockContainer}>
+            <Entypo
+              name={restricted ? "lock" : "lock-open"}
+              style={{
+                color: restricted ? COLORS.privateRed : COLORS.publicGreen,
+              }}
+              size={28}
+            />
+          </View>
+          <Text style={styles.restrictedText}>
+            {!restricted
+              ? "The club is open to all students"
+              : "Students must " +
+                (restrictedType === 0
+                  ? "complete an application"
+                  : restrictedType === 1
+                    ? "try out"
+                    : restrictedType === 2
+                      ? "complete prerequisites"
+                      : "complete and application as well as prerequisites") +
+                " to join the club"}
+          </Text>
+        </View>
+
+        {isWeb ? (
+          restricted && (
             <View style={styles.restrictedOptions}>
-              <Pressable
-                onPress={() => {
-                  setRestrictedType(0);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.optionsText,
-                    {
-                      color:
-                        restrictedType === 0
-                          ? COLORS.textPrimary
-                          : styles.optionsText.color,
-                      fontFamily:
-                        restrictedType === 0
-                          ? "LatoBold"
-                          : styles.optionsText.fontFamily,
-                    },
-                  ]}
-                >
-                  Application
-                </Text>
-              </Pressable>
-              <Entypo style={styles.dotIcon} name="dot-single" size={24} />
-              <Pressable
-                onPress={() => {
-                  setRestrictedType(1);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.optionsText,
-                    {
-                      color:
-                        restrictedType === 1
-                          ? COLORS.textPrimary
-                          : styles.optionsText.color,
-                      fontFamily:
-                        restrictedType === 1
-                          ? "LatoBold"
-                          : styles.optionsText.fontFamily,
-                    },
-                  ]}
-                >
-                  Tryout
-                </Text>
-              </Pressable>
-              <Entypo style={styles.dotIcon} name="dot-single" size={24} />
-              <Pressable
-                onPress={() => {
-                  setRestrictedType(2);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.optionsText,
-                    {
-                      color:
-                        restrictedType === 2
-                          ? COLORS.textPrimary
-                          : styles.optionsText.color,
-                      fontFamily:
-                        restrictedType === 2
-                          ? "LatoBold"
-                          : styles.optionsText.fontFamily,
-                    },
-                  ]}
-                >
-                  Prerequisite
-                </Text>
-              </Pressable>
+              {[
+                { label: "Application", value: 0 },
+
+                { label: "Prerequisites", value: 2 },
+                { label: "Application + Prerequisites", value: 3 },
+                { label: "Tryout", value: 1 },
+              ].map((opt, i) => (
+                <React.Fragment key={opt.value}>
+                  {i > 0 && (
+                    <Entypo
+                      style={styles.dotIcon}
+                      name="dot-single"
+                      size={24}
+                    />
+                  )}
+                  <Pressable onPress={() => setRestrictedType(opt.value)}>
+                    <Text
+                      style={[
+                        styles.optionsText,
+                        {
+                          color:
+                            restrictedType === opt.value
+                              ? COLORS.textPrimary
+                              : styles.optionsText.color,
+                          fontFamily:
+                            restrictedType === opt.value
+                              ? "LatoBold"
+                              : styles.optionsText.fontFamily,
+                        },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                </React.Fragment>
+              ))}
+            </View>
+          )
+        ) : (
+          <Animated.View style={[restrictedAnimatedStyle]}>
+            <View style={styles.restrictedOptions}>
+              {[
+                { label: "Application", value: 0 },
+
+                { label: "Prerequisites", value: 2 },
+                { label: "Application + Prerequisites", value: 3 },
+                { label: "Tryout", value: 1 },
+              ].map((opt, i) => (
+                <React.Fragment key={opt.value}>
+                  {i > 0 && (
+                    <Entypo
+                      style={styles.dotIcon}
+                      name="dot-single"
+                      size={24}
+                    />
+                  )}
+                  <Pressable onPress={() => setRestrictedType(opt.value)}>
+                    <Text
+                      style={[
+                        styles.optionsText,
+                        {
+                          color:
+                            restrictedType === opt.value
+                              ? COLORS.textPrimary
+                              : styles.optionsText.color,
+                          fontFamily:
+                            restrictedType === opt.value
+                              ? "LatoBold"
+                              : styles.optionsText.fontFamily,
+                        },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                </React.Fragment>
+              ))}
             </View>
           </Animated.View>
-        </Pressable>
+        )}
+      </Pressable>
+      <View style={{ height: 50 }} />
+      <MonochromeButton
+        onPress={() => goToPage(1)}
+        title="Next"
+        restricted={false}
+      />
+    </View>
+  );
 
-        <MonochromeButton
-          onPress={() => goToPage(restricted ? 1 : 2)}
-          title="Next"
-          restricted={false}
-        />
-      </View>
-    </>,
-    <>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-        style={{ flex: 1 }}
+  const RestrictedSection = () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      style={{ flex: isWeb ? undefined : 1 }}
+    >
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 0, flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerStyle={{
-            paddingBottom: 0,
-            flexGrow: 1,
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {restricted && restrictedType === 0 && (
+        <View style={isWeb ? webStyles.section : {}}>
+          {restricted && (restrictedType === 0 || restrictedType === 3) && (
             <View style={{ marginBottom: 40 }}>
               <LargeStylizedInput
                 value={appDescription}
@@ -536,7 +528,6 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
                   flexDirection: "row",
                   justifyContent: "center",
                   alignItems: "center",
-                  marginVertical: 50,
                 }}
               >
                 <Text
@@ -559,46 +550,22 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
               </View>
               {hasDeadline && (
                 <>
-                  <View
-                    style={{
-                      flex: 0,
-                      paddingHorizontal: 6,
-                    }}
-                  >
-                    <View
+                  <View style={{ paddingHorizontal: 6 }}>
+                    <Text
                       style={{
-                        flexDirection: "row",
-                        width: "100%",
-                        justifyContent: "space-between",
+                        color: "#fff",
+                        fontSize: 18,
+                        marginBottom: 4,
+                        paddingHorizontal: 2,
+                        fontFamily: "InterRegular",
                       }}
                     >
-                      <Text
-                        style={{
-                          color: "#fff",
-                          fontSize: 18,
-                          marginBottom: 4,
-
-                          paddingHorizontal: 2,
-                          fontFamily: "InterRegular",
-                        }}
-                      >
-                        Deadline
-                      </Text>
-                    </View>
+                      Deadline
+                    </Text>
                     <Pressable
                       onPress={() => setDeadlineVisable(!deadlinePickerVisable)}
                     >
-                      <View
-                        style={{
-                          backgroundColor: "#121212",
-                          borderWidth: 1,
-                          borderColor: "#2a2a2a",
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          borderRadius: 14,
-                          height: 42,
-                        }}
-                      >
+                      <View style={webStyles.datePicker}>
                         <Text
                           style={{
                             fontSize: 16,
@@ -610,13 +577,13 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
                         >
                           {deadline
                             ? dayjs(deadline).format("dddd, MMMM DD")
-                            : "Tap to enter a deadline for user applications"}
+                            : "Tap to enter a deadline"}
                         </Text>
                       </View>
                     </Pressable>
                   </View>
                   {deadline && (
-                    <View>
+                    <View style={{ width: "100%" }}>
                       <ManualEventCard
                         category="Deadline"
                         name={clubTitle + " Application Deadline"}
@@ -647,6 +614,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
               />
             </View>
           )}
+
           {restricted && restrictedType === 1 && (
             <>
               <LargeStylizedInput
@@ -658,44 +626,21 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
               />
               <View style={{ height: 50 }} />
               <View
-                style={{
-                  flex: 0,
-                  paddingHorizontal: 6,
-                  paddingVertical: 12,
-                }}
+                style={{ flex: 0, paddingHorizontal: 6, paddingVertical: 12 }}
               >
-                <View
+                <Text
                   style={{
-                    flexDirection: "row",
-                    width: "100%",
-                    justifyContent: "space-between",
+                    color: "#fff",
+                    fontSize: 18,
+                    marginBottom: 4,
+                    paddingHorizontal: 2,
+                    fontFamily: "InterRegular",
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontSize: 18,
-                      marginBottom: 4,
-
-                      paddingHorizontal: 2,
-                      fontFamily: "InterRegular",
-                    }}
-                  >
-                    Tryout Dates
-                  </Text>
-                </View>
+                  Tryout Dates
+                </Text>
                 <Pressable onPress={() => setDateVisable(!datePickerVisable)}>
-                  <View
-                    style={{
-                      backgroundColor: "#121212",
-                      borderWidth: 1,
-                      borderColor: "#2a2a2a",
-                      paddingHorizontal: 12,
-                      paddingVertical: 10,
-                      borderRadius: 14,
-                      height: 42,
-                    }}
-                  >
+                  <View style={webStyles.datePicker}>
                     <Text
                       style={{
                         fontSize: 16,
@@ -705,17 +650,14 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
                             : "#888",
                       }}
                     >
-                      {tryoutDate && tryoutDate?.length > 1
+                      {tryoutDate && tryoutDate.length > 1
                         ? handleEventDate(String(tryoutDate[0])) +
-                          (tryoutDate.length > 1
-                            ? "... " +
-                              "[" +
-                              String(tryoutDate.length - 1) +
-                              " more]"
-                            : "")
-                        : tryoutDate && tryoutDate[0]
+                          " [" +
+                          (tryoutDate.length - 1) +
+                          " more]"
+                        : tryoutDate?.[0]
                           ? handleEventDate(String(tryoutDate[0]))
-                          : "Tap to enter 1 or more dates for the team tryouts"}
+                          : "Tap to enter tryout dates"}
                     </Text>
                   </View>
                 </Pressable>
@@ -728,143 +670,89 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
                   paddingTop: 20,
                 }}
               >
-                <View>
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontSize: 18,
-                      marginBottom: 4,
-
-                      paddingHorizontal: 2,
-                      fontFamily: "InterRegular",
-                    }}
-                  >
-                    Start Time
-                  </Text>
-                  <Pressable
-                    onPress={() => setStartTimePicker(!startTimePicker)}
-                  >
-                    <View
+                {[
+                  {
+                    label: "Start Time",
+                    value: eventStartTime,
+                    setter: setStartTimePicker,
+                    visible: startTimePicker,
+                    setVisible: setStartTimePicker,
+                    hours: 12,
+                    setTime: setEventStartTime,
+                  },
+                  {
+                    label: "End Time",
+                    value: eventEndTime,
+                    setter: setEndTimePicker,
+                    visible: endTimePicker,
+                    setVisible: setEndTimePicker,
+                    hours: 14,
+                    setTime: setEventEndTime,
+                  },
+                ].map((timeField) => (
+                  <View key={timeField.label}>
+                    <Text
                       style={{
-                        backgroundColor: "#121212",
-                        borderWidth: 1,
-                        borderColor: "#2a2a2a",
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        borderRadius: 14,
-                        height: 42,
+                        color: "#fff",
+                        fontSize: 18,
+                        marginBottom: 4,
+                        fontFamily: "InterRegular",
                       }}
                     >
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          color:
-                            eventStartTime.length > 0
-                              ? COLORS.textPrimary
-                              : "#888",
-                        }}
-                      >
-                        {eventStartTime.length > 0
-                          ? eventStartTime
-                          : "12:00 PM"}
-                      </Text>
-                    </View>
-                  </Pressable>
-                  <TimePickerModal
-                    visible={startTimePicker}
-                    onDismiss={() => setStartTimePicker(!startTimePicker)}
-                    onConfirm={({ hours, minutes }) => {
-                      const corrHours = hours <= 12 ? hours : hours - 12;
-                      const corrMinutes =
-                        minutes < 10 ? "0" + String(minutes) : minutes;
-                      const ending = hours < 12 ? "AM" : "PM";
-                      const stringTime =
-                        String(corrHours) +
-                        ":" +
-                        String(corrMinutes) +
-                        " " +
-                        ending;
-                      setEventStartTime(stringTime);
-                      setStartTimePicker(false);
-                    }}
-                    hours={12}
-                    minutes={0o0}
-                  />
-                </View>
-                <View>
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontSize: 18,
-                      marginBottom: 4,
-
-                      paddingHorizontal: 2,
-                      fontFamily: "InterRegular",
-                    }}
-                  >
-                    End Time
-                  </Text>
-                  <Pressable onPress={() => setEndTimePicker(!endTimePicker)}>
-                    <View
-                      style={{
-                        backgroundColor: "#121212",
-                        borderWidth: 1,
-                        borderColor: "#2a2a2a",
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        borderRadius: 14,
-                        height: 42,
-                      }}
+                      {timeField.label}
+                    </Text>
+                    <Pressable
+                      onPress={() => timeField.setVisible(!timeField.visible)}
                     >
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          color:
-                            eventEndTime.length > 0
-                              ? COLORS.textPrimary
-                              : "#888",
-                        }}
-                      >
-                        {eventEndTime.length > 0 ? eventEndTime : "2:00 PM"}
-                      </Text>
-                    </View>
-                  </Pressable>
-                  <TimePickerModal
-                    visible={endTimePicker}
-                    onDismiss={() => setEndTimePicker(!endTimePicker)}
-                    onConfirm={({ hours, minutes }) => {
-                      const corrHours = hours <= 12 ? hours : hours - 12;
-                      const corrMinutes =
-                        minutes < 10 ? "0" + String(minutes) : minutes;
-                      const ending = hours < 12 ? "AM" : "PM";
-                      const stringTime =
-                        String(corrHours) +
-                        ":" +
-                        String(corrMinutes) +
-                        " " +
-                        ending;
-                      setEventEndTime(stringTime);
-                      setEndTimePicker(!endTimePicker);
-                    }}
-                    hours={14}
-                    minutes={0o0}
-                  />
-                </View>
-              </View>
-              <View>
-                {tryoutDate?.map((item, index) => (
-                  <ManualEventCard
-                    category="Tryout"
-                    name={clubTitle + " Tryouts Day " + (index + 1)}
-                    date={String(item)}
-                    inClub={true}
-                    inAnnouncement={true}
-                    key={String(item)}
-                    startTime={eventStartTime}
-                    endTime={eventEndTime}
-                  />
+                      <View style={webStyles.datePicker}>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            color:
+                              timeField.value.length > 0
+                                ? COLORS.textPrimary
+                                : "#888",
+                          }}
+                        >
+                          {timeField.value.length > 0
+                            ? timeField.value
+                            : timeField.hours === 12
+                              ? "12:00 PM"
+                              : "2:00 PM"}
+                        </Text>
+                      </View>
+                    </Pressable>
+                    <TimePickerModal
+                      visible={timeField.visible}
+                      onDismiss={() => timeField.setVisible(false)}
+                      onConfirm={({ hours, minutes }) => {
+                        const corrHours = hours <= 12 ? hours : hours - 12;
+                        const corrMinutes =
+                          minutes < 10 ? "0" + minutes : minutes;
+                        const ending = hours < 12 ? "AM" : "PM";
+                        timeField.setTime(
+                          `${corrHours}:${corrMinutes} ${ending}`,
+                        );
+                        timeField.setVisible(false);
+                      }}
+                      hours={timeField.hours}
+                      minutes={0}
+                    />
+                  </View>
                 ))}
               </View>
+              {tryoutDate?.map((item, index) => (
+                <ManualEventCard
+                  key={String(item)}
+                  category="Tryout"
+                  name={clubTitle + " Tryouts Day " + (index + 1)}
+                  date={String(item)}
+                  inClub={true}
+                  inAnnouncement={true}
+                  startTime={eventStartTime}
+                  endTime={eventEndTime}
+                />
+              ))}
               <DatePickerModal
                 locale="en"
                 mode="multiple"
@@ -878,13 +766,12 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
             </>
           )}
 
-          {restricted && restrictedType === 2 && (
+          {restricted && (restrictedType === 2 || restrictedType === 3) && (
             <>
               <Text
                 style={{
                   color: "#fff",
                   fontSize: 18,
-
                   fontFamily: "InterRegular",
                   paddingHorizontal: 2,
                   marginLeft: 10,
@@ -893,7 +780,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
                 Prerequisites:
               </Text>
               {prereqs.map((item, index) => (
-                <View key={index} style={{}}>
+                <View key={index}>
                   <StylizedInput
                     value={item}
                     onChangeText={(text) => handleChange(text, index)}
@@ -915,14 +802,13 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
                           name="highlight-remove"
                           size={24}
                           color={COLORS.textMuted}
-                          style={{ alignSelf: "flex-end" }}
                         />
                       </Pressable>
                     </View>
                   )}
                 </View>
               ))}
-              <Pressable onPress={() => handleAdd()}>
+              <Pressable onPress={handleAdd}>
                 <View
                   style={{
                     flexDirection: "row",
@@ -950,30 +836,30 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
               </Pressable>
             </>
           )}
-          {restricted && (
-            <MonochromeButton
-              onPress={() => goToPage(2)}
-              title="Next"
-              restricted={false}
-            />
-          )}
-          {!restricted && <View></View>}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </>,
-    <>
+        </View>
+        <MonochromeButton
+          onPress={() => goToPage(2)}
+          title="Next"
+          restricted={false}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+
+  const AdditionalInfoSection = () => (
+    <View style={isWeb ? webStyles.section : {}}>
       <LargeStylizedInput
         value={detailedDesc}
         onChangeText={setDetailedDesc}
         dark={true}
         label="Detailed Club Description"
-        placeholder={`Provide a more detailed introduction and description to the club - possible members will first see this when they view the club info page.\nLeave blank to indicate this remain the other entered description (not recommended)`}
+        placeholder={`Provide a more detailed introduction and description to the club.\nLeave blank to use the other entered description (not recommended)`}
       />
       <View style={{ height: 40 }} />
       <StylizedInput
         value={meetingLoc}
         onChangeText={setMeetingLoc}
-        label={sportsTeam ? "Practice Location" : "Meeting Location"}
+        label={sportsTeam ? "Practice Location" : "Meeting Location (Optional)"}
         placeholder={
           "Enter where the " + (sportsTeam ? "team practices" : "club meets")
         }
@@ -985,30 +871,63 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
           fontSize: 18,
           marginBottom: -6,
           fontFamily: "InterRegular",
-
           marginLeft: 8,
         }}
       >
         Meeting Frequency
       </Text>
-      <View
-        style={{
-          backgroundColor: COLORS.background,
-          borderWidth: 1,
-          borderColor: "#2a2a2a",
-
-          borderRadius: 14,
-          marginHorizontal: 6,
-          marginVertical: 12,
-        }}
-      >
-        <Picker
+      <View style={webStyles.pickerContainer}>
+        {isWeb ? (
+          <select
+            value={frequency}
+            onChange={(e) => setFrequency(Number(e.target.value))}
+            style={{
+              color: COLORS.textPrimary,
+              backgroundColor: "transparent",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 12px",
+              fontSize: 16,
+              width: "100%",
+              outline: "none",
+            }}
+          >
+            {frequencyOptions.map((option) => (
+              <option
+                key={option.value}
+                value={option.value}
+                style={{ backgroundColor: COLORS.surfaceAlternate }}
+              >
+                {option.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <Picker
+            selectedValue={frequency}
+            onValueChange={(itemValue) => setFrequency(itemValue)}
+            itemStyle={{ color: COLORS.textPrimary }}
+            selectionColor={COLORS.surfaceAlternate}
+          >
+            {frequencyOptions.map((option) => (
+              <Picker.Item
+                key={option.value}
+                label={option.label}
+                value={option.value}
+              />
+            ))}
+          </Picker>
+        )}
+      </View>
+      {/*
+      <Picker
           selectedValue={frequency}
-          onValueChange={(itemValue: number, itemIndex: any) =>
-            setFrequency(itemValue)
-          }
+          onValueChange={(itemValue: number) => setFrequency(itemValue)}
           itemStyle={{ color: COLORS.textPrimary }}
           selectionColor={COLORS.surfaceAlternate}
+          style={Platform.select({
+            web: { color: COLORS.textPrimary, backgroundColor: "transparent" },
+          })}
         >
           <Picker.Item label="Daily" value={4} />
           <Picker.Item label="Weekly" value={0} />
@@ -1016,7 +935,85 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
           <Picker.Item label="Monthly" value={2} />
           <Picker.Item label="As Needed" value={3} />
         </Picker>
-      </View>
+      */}
+
+      <StylizedInput
+        value={meetingDayTime}
+        onChangeText={setMeetingDayTime}
+        dark
+        label="Meeting Date/Time"
+        placeholder="EX: Tuesdays @ 3PM"
+      />
+      {/* <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+
+          paddingTop: 20,
+        }}
+      >
+        <StylizedInput
+          value={meetingLoc}
+          onChangeText={setMeetingLoc}
+          label={"Meeting Day (Optional)"}
+          placeholder={"Enter the day of the week the club meets"}
+          dark={true}
+          width={"50%"}
+        />
+        <View style={{ width: "50%" }}>
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 18,
+              marginBottom: 4,
+
+              paddingHorizontal: 2,
+              fontFamily: "InterRegular",
+            }}
+          >
+            Meeting Time (Optional)
+          </Text>
+          <Pressable onPress={() => setMeetingTimePicker(!meetingTimePicker)}>
+            <View
+              style={{
+                backgroundColor: "#121212",
+                borderWidth: 1,
+                borderColor: "#2a2a2a",
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                borderRadius: 14,
+                height: 42,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: meetingTime.length > 0 ? COLORS.textPrimary : "#888",
+                }}
+              >
+                {meetingTime.length > 0 ? meetingTime : "2:00 PM"}
+              </Text>
+            </View>
+          </Pressable>
+          <TimePickerModal
+            visible={meetingTimePicker}
+            onDismiss={() => setMeetingTimePicker(!meetingTimePicker)}
+            onConfirm={({ hours, minutes }) => {
+              const corrHours = hours <= 12 ? hours : hours - 12;
+              const corrMinutes =
+                minutes < 10 ? "0" + String(minutes) : minutes;
+              const ending = hours < 12 ? "AM" : "PM";
+              const stringTime =
+                String(corrHours) + ":" + String(corrMinutes) + " " + ending;
+              setMeetingTime(stringTime);
+              setMeetingTimePicker(!meetingTimePicker);
+            }}
+            hours={14}
+            minutes={0o0}
+          />
+        </View>
+      </View>*/}
       <LargeStylizedInput
         value={clubRules}
         onChangeText={setClubRules}
@@ -1025,86 +1022,124 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
         placeholder="Describe the rules club members must follow"
       />
 
-      <View style={{ height: 40 }} />
+      <StylizedContainer label="Select a Club Color" dark={true}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+          {CLUB_COLORS.map((color) => (
+            <Pressable
+              key={color}
+              onPress={() => setSelectedColor(color)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: color,
+                borderWidth: selectedColor === color ? 3 : 0,
+                borderColor: "#FFFFFF",
+              }}
+            />
+          ))}
+        </View>
+      </StylizedContainer>
 
+      <View style={{ height: 40 }} />
       <GradientButton
         onPress={editing ? handleSave : handleCreate}
         title={editing ? "Save Changes" : "Create"}
       />
-    </>,
-  ];
+    </View>
+  );
 
-  const CurrentPage = pages[animPage];
-  const goToPage = (newPage: number) => {
-    setAnimPage(newPage);
-    const height = pageHeights.current[newPage] || currentHeight;
-    setCurrentHeight(height);
+  const stepTitle = () => {
+    if (animPage === 0) return "Basic Info";
+    if (animPage === 1 && restricted) {
+      return restrictedType === 0
+        ? "Student Application Options"
+        : restrictedType === 1
+          ? "Tryout Information"
+          : "Add Prerequisites";
+    }
+    return "Additional Info";
   };
 
+  const totalPages = restricted ? 3 : 2;
+  const pageList = restricted
+    ? [BasicInfoSection(), RestrictedSection(), AdditionalInfoSection()]
+    : [BasicInfoSection(), AdditionalInfoSection()];
+
   return (
-    <TouchableWithoutFeedback
-      onPressIn={Platform.OS === "web" ? undefined : Keyboard.dismiss}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={[styles.container, { flex: 1 }]}>
+    <DismissKeyboardView>
+      <View
+        style={[
+          styles.container,
+          {
+            flex: 1,
+            marginTop: insets.top,
+            marginRight: insets.right,
+            marginLeft: insets.left,
+            marginBottom: insets.bottom,
+          },
+          isWeb && { overflow: "visible" },
+        ]}
+      >
+        {/* header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Create a Club </Text>
+          <Text style={styles.headerTitle}>
+            {editing ? "Edit Club" : "Create a Club"}
+          </Text>
 
           <View
             style={{
-              flexDirection: "row",
-
               width: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "relative",
             }}
           >
-            <View
-              style={{ justifyContent: "flex-start", position: "absolute" }}
-            >
-              <Pressable
-                onPress={() => goToPage(animPage - (restricted ? 1 : 2))}
-                disabled={animPage === 0}
-              >
-                <Entypo
-                  name="chevron-left"
-                  size={36}
-                  color={COLORS.textSecondary}
-                  style={{ opacity: animPage === 0 ? 0 : 1 }}
-                />
-              </Pressable>
-            </View>
-            <View
+            <TouchableOpacity
+              onPress={() => goToPage(animPage - 1)}
+              disabled={animPage === 0}
               style={{
-                width: "100%",
-                justifyContent: "center",
-                alignItems: "center",
+                position: "absolute",
+                left: 0,
+                zIndex: 10,
+                padding: 4,
               }}
             >
-              <Text
+              <Entypo
+                name="chevron-left"
+                size={36}
+                color={COLORS.textSecondary}
                 style={{
-                  fontFamily: "InterMedium",
-                  fontSize: 28,
-                  color: COLORS.textPrimary,
-                  textAlign: "center",
-                  width: 300,
+                  opacity: animPage === 0 ? 0 : 1,
                 }}
-              >
-                {animPage === 0
-                  ? "Basic Info"
-                  : animPage === 1
-                    ? restricted
-                      ? restrictedType === 0
-                        ? "Student Application Options"
-                        : restrictedType === 1
-                          ? "Tryout Information"
-                          : "Add Prerequisites"
-                      : ""
-                    : animPage === 2
-                      ? "Additional Info"
-                      : ""}
-              </Text>
-            </View>
+              />
+            </TouchableOpacity>
+
+            <Text
+              style={{
+                fontFamily: "InterMedium",
+                fontSize: 28,
+                color: COLORS.textPrimary,
+                textAlign: "center",
+              }}
+            >
+              {stepTitle()}
+            </Text>
+          </View>
+
+          <View style={webStyles.stepIndicator}>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  webStyles.stepDot,
+                  i === animPage && webStyles.stepDotActive,
+                ]}
+              />
+            ))}
           </View>
         </View>
+
         <LinearGradient
           colors={["#12c2e9", "#c471ed", "#f64f59"]}
           start={{ x: 0, y: 0 }}
@@ -1112,47 +1147,83 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
           style={styles.gradientBar}
         />
 
-        {/* Page Content start */}
-
-        <Animated.View
-          style={[
-            {
-              flexDirection: "row",
-              width: width * pages.length,
-            },
-            pagesAnimatedStyle,
-          ]}
-        >
-          {pages.map((PageComp, idx) => {
-            return (
+        {/* page content */}
+        {isWeb ? (
+          // web: render current page directly, no sliding animation
+          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+            {pageList[animPage]}
+          </ScrollView>
+        ) : (
+          // mobile: original sliding animation
+          <Animated.View
+            style={[
+              { flexDirection: "row", width: width * pageList.length },
+              pagesAnimatedStyle,
+            ]}
+          >
+            {pageList.map((PageComp, idx) => (
               <View key={idx} style={{ width }}>
-                <View style={{}}>{PageComp}</View>
+                <View>{PageComp}</View>
               </View>
-            );
-          })}
-        </Animated.View>
+            ))}
+          </Animated.View>
+        )}
 
-        {/* page content end */}
-
-        <View style={styles.bottomMargin} />
-      </SafeAreaView>
-    </TouchableWithoutFeedback>
+        {!isWeb && <View style={styles.bottomMargin} />}
+      </View>
+    </DismissKeyboardView>
   );
 }
 
-/*
-<StylizedInput
-          label="Tags"
-          value={dummyText}
-          onChangeText={setDummyText}
-          placeholder="Add tags which apply to this club (Max 3)"
-        />
-*/
-
-/*
-
-
-
-
-
-*/
+const webStyles = StyleSheet.create({
+  section: {
+    paddingHorizontal: 32,
+    paddingTop: 16,
+    maxWidth: 720,
+    alignSelf: "center",
+    width: "100%",
+  },
+  datePicker: {
+    backgroundColor: "#121212",
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    height: 42,
+  },
+  pickerContainer: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    borderRadius: 14,
+    marginHorizontal: 6,
+    marginVertical: 12,
+  },
+  stepIndicator: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 12,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.surfaceAlternate,
+  },
+  stepDotActive: {
+    backgroundColor: COLORS.primary,
+    width: 20,
+  },
+  webNavRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    paddingHorizontal: 32,
+    paddingBottom: 24,
+    maxWidth: 720,
+    alignSelf: "center",
+    width: "100%",
+  },
+});

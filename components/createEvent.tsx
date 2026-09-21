@@ -1,3 +1,4 @@
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -7,21 +8,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import React, { useEffect, useState } from "react";
 import {
-  Keyboard,
-  LayoutChangeEvent,
-  Platform,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Keyboard,
+    LayoutChangeEvent,
+    Platform,
+    Pressable,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { Switch } from "react-native-gesture-handler";
 import { DatePickerModal, TimePickerModal } from "react-native-paper-dates";
 import Animated, {
-  useAnimatedStyle,
-  withTiming,
+    useAnimatedStyle,
+    withTiming,
 } from "react-native-reanimated";
 import EventTag, { availableEventTags } from "./eventTag";
 import { SizeGradientButton } from "./gradientButton";
@@ -41,24 +42,33 @@ type editProps = {
 export default function CreateEvent({ inputClub, back, error }: props) {
   const [startedCreate, setStartedCreate] = useState(false);
   const [local, setLocal] = useState(true); // !local would indicate a global event (local events are club-scoped, global events are school-scoped)
-
+  console.log("inCreate");
   const [eventTitle, setEventTitle] = useState("");
   const currentUser = useUserData();
-  const currentSchool = useQuery(api.schools.getSchoolData, {
-    schoolId: currentUser?.userData.school?._id,
-  });
+  const currentSchool = useQuery(
+    api.schools.getSchoolData,
+    currentUser?.userData.school?._id
+      ? {
+          schoolId: currentUser.userData.school._id,
+          includeUsers: false,
+          includeEvents: false,
+        }
+      : "skip",
+  );
+  const globalEventsEnabled =
+    currentSchool?.configurations?.globalSchoolPage === true;
   const [hasDescription, setHasDescription] = useState(false);
   const [eventDescription, setEventDescription] = useState("");
 
   const [eventDate, setEventDate] = React.useState<Date | undefined>(
-    new Date()
+    new Date(),
   );
   const [dateArray, setDateArray] = React.useState<Date[] | undefined>(
-    undefined
+    undefined,
   );
   const [eventDateNum, setEventDateNum] = useState("");
   const [selectedClub, setSelectedClub] = useState<Id<"clubs"> | undefined>(
-    undefined
+    undefined,
   );
 
   const [datePickerVisable, setDatePickerVisable] = useState(false);
@@ -73,6 +83,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
 
   let today = new Date();
   const handleLocal = (global: number) => {
+    if (global === 1 && !globalEventsEnabled) return;
     if (global == 1) setLocal(false);
     else setLocal(true);
     console.log("local: ", local);
@@ -82,11 +93,19 @@ export default function CreateEvent({ inputClub, back, error }: props) {
   const [isFocus, setIsFocus] = useState(false);
   const handleCreateEvent = async () => {
     setStartedCreate(true);
-    console.log("started create event ", eventDate, eventTitle, eventType);
-    if (!eventDate || !eventTitle || !eventType || !selectedClub) {
+    const resolvedClubId = inputClub ?? selectedClub;
+    const trimmedTitle = eventTitle.trim();
+
+    console.log("started create event ", eventDate, trimmedTitle, eventType);
+    if (
+      !eventDate ||
+      trimmedTitle.length === 0 ||
+      selectedTags.length === 0 ||
+      !resolvedClubId
+    ) {
       setStartedCreate(false);
       error ? error() : null;
-      return;
+      throw new Error("missing required fields");
     }
     const correctStartTime =
       eventStartTime.length > 0 ? eventStartTime : undefined;
@@ -111,15 +130,15 @@ export default function CreateEvent({ inputClub, back, error }: props) {
       " ",
       eventType,
       " ",
-      selectedClub
+      selectedClub,
     );
-    if (dateArray && local && (inputClub || selectedClub)) {
+    if (dateArray && local && resolvedClubId) {
       for (let i = 0; i < dateArray.length; i++) {
         const date = dateArray[i];
         const correctDate = handleEventDate(String(date));
         await createNewEvent({
-          clubId: (inputClub ?? selectedClub)!,
-          title: eventTitle,
+          clubId: resolvedClubId,
+          title: trimmedTitle,
           description: eventDescription,
           startTime: correctStartTime,
           endTime: correctEndTime,
@@ -135,7 +154,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
         const date = dateArray[i];
         const correctDate = handleEventDate(String(date));
         await createGlobalEvent({
-          title: eventTitle,
+          title: trimmedTitle,
           description: eventDescription,
           startTime: correctStartTime,
           endTime: correctEndTime,
@@ -143,14 +162,14 @@ export default function CreateEvent({ inputClub, back, error }: props) {
           dateString: correctDate,
           dateNum: date.toISOString(),
           eventType: eventType,
-          club: (inputClub ?? selectedClub)!,
+          club: resolvedClubId,
         });
       }
       console.log("2 - glob multi event");
-    } else if (local && (inputClub || selectedClub)) {
+    } else if (local && resolvedClubId) {
       await createNewEvent({
-        clubId: (inputClub ?? selectedClub)!,
-        title: eventTitle,
+        clubId: resolvedClubId,
+        title: trimmedTitle,
         description: eventDescription,
         startTime: correctStartTime,
         endTime: correctEndTime,
@@ -162,7 +181,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
       console.log("3 - local single event");
     } else {
       await createGlobalEvent({
-        title: eventTitle,
+        title: trimmedTitle,
         description: eventDescription,
         startTime: correctStartTime,
         endTime: correctEndTime,
@@ -170,7 +189,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
         dateString: correctDate,
         dateNum: numDate,
         eventType: eventType,
-        club: (inputClub ?? selectedClub)!,
+        club: resolvedClubId,
       });
       console.log("4 - glob single event");
     }
@@ -239,10 +258,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
         });
 
   return (
-    <TouchableWithoutFeedback
-      onPressIn={Platform.OS === "web" ? undefined : Keyboard.dismiss}
-      style={{ flex: 1 }}
-    >
+    <View>
       <View style={{ paddingBottom: !back ? 60 : 0 }}>
         <View style={styles.header}>
           <Text style={styles.modalTitle}>Create an Event</Text>
@@ -281,11 +297,19 @@ export default function CreateEvent({ inputClub, back, error }: props) {
                 <Text style={[styles.globalOpt, { color: COLORS.textMuted }]}>
                   -
                 </Text>
-                <TouchableOpacity onPress={() => handleLocal(1)}>
+                <TouchableOpacity
+                  disabled={!globalEventsEnabled}
+                  onPress={() => handleLocal(1)}
+                >
                   <Text
                     style={[
                       styles.globalOpt,
-                      { color: !local ? COLORS.textPrimary : COLORS.textMuted },
+                      {
+                        color:
+                          !globalEventsEnabled || local
+                            ? COLORS.textMuted
+                            : COLORS.textPrimary,
+                      },
                     ]}
                   >
                     Global
@@ -668,20 +692,22 @@ export default function CreateEvent({ inputClub, back, error }: props) {
                 </View>
               </Pressable>
             </View>
-          </View>
-          <View style={{ paddingHorizontal: 50, marginBottom: 40 }}>
-            <SizeGradientButton
-              onPress={handleCreateEvent}
-              title="Create"
-              width={30}
-              height={7}
-              horizontalPadding={20}
-              disabled={startedCreate}
-            />
+            <View
+              style={{ paddingHorizontal: 50, marginBottom: 40, marginTop: 15 }}
+            >
+              <SizeGradientButton
+                onPress={handleCreateEvent}
+                title="Create"
+                width={30}
+                height={12}
+                horizontalPadding={20}
+                disabled={startedCreate}
+              />
+            </View>
           </View>
         </View>
       </View>
-    </TouchableWithoutFeedback>
+    </View>
   );
 }
 export function EditEvent({ inputEvent, back }: editProps) {
@@ -694,18 +720,18 @@ export function EditEvent({ inputEvent, back }: editProps) {
   const currentUser = useUserData();
 
   const [eventDescription, setEventDescription] = useState(
-    event?.description ?? ""
+    event?.description ?? "",
   );
 
   const [eventDate, setEventDate] = React.useState<Date | undefined>(
-    event?.dateNumber ? new Date(event?.dateNumber) : new Date()
+    event?.dateNumber ? new Date(event?.dateNumber) : new Date(),
   );
   const [dateArray, setDateArray] = React.useState<Date[] | undefined>(
-    undefined
+    undefined,
   );
 
   const [selectedClub, setSelectedClub] = useState<Id<"clubs"> | undefined>(
-    undefined
+    undefined,
   );
 
   const [datePickerVisable, setDatePickerVisable] = useState(false);
@@ -825,7 +851,7 @@ export function EditEvent({ inputEvent, back }: editProps) {
     >
       <View style={{ paddingBottom: !back ? 60 : 0 }}>
         <View style={styles.header}>
-          {inputClub && back && (
+          {inputClub && !isWeb() && back && (
             <TouchableOpacity
               onPress={back}
               style={{
@@ -1229,16 +1255,18 @@ export function EditEvent({ inputEvent, back }: editProps) {
                 </View>
               </Pressable>
             </View>
-          </View>
-          <View style={{ paddingHorizontal: 50, marginBottom: 40 }}>
-            <SizeGradientButton
-              onPress={handleEdit}
-              title="Save Changes"
-              width={30}
-              height={7}
-              horizontalPadding={20}
-              disabled={startedCreate}
-            />
+            <View
+              style={{ paddingHorizontal: 50, marginBottom: 40, marginTop: 15 }}
+            >
+              <SizeGradientButton
+                onPress={handleEdit}
+                title="Save Changes"
+                width={30}
+                height={7}
+                horizontalPadding={20}
+                disabled={startedCreate}
+              />
+            </View>
           </View>
         </View>
       </View>

@@ -1,3 +1,4 @@
+import ChildClubs from "@/components/childClubs";
 import ClubCard from "@/components/clubCard";
 import CreateSceenComp from "@/components/create";
 import CreateAnnouncement from "@/components/createAnnouncement";
@@ -8,16 +9,11 @@ import HomeDashboard from "@/components/homeDashboard";
 import LoadingScreen from "@/components/loadingScreen";
 import { ChildCard } from "@/components/memberCard";
 import NewFAB from "@/components/NewFAB";
-import { Pager } from "@/components/pager";
-import {
-  hasAdminAccess,
-  isHeadAdmin,
-  isParent,
-  isStudent,
-} from "@/constants/roles";
+import { WebCreateModal } from "@/components/webCreateModal";
+import { isAdmin, isHeadAdmin, isParent, isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/browse.styles";
 import { AntDesign } from "@expo/vector-icons";
@@ -27,7 +23,7 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { BottomSheetDefaultFooterProps } from "@gorhom/bottom-sheet/lib/typescript/components/bottomSheetFooter/types";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -38,7 +34,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Animated, Dimensions, SectionList, Text, View } from "react-native";
+import {
+  Animated,
+  Dimensions,
+  Platform,
+  SectionList,
+  Text,
+  View,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -52,15 +55,36 @@ export default function index() {
   const router = useRouter();
   const leaveClub = useMutation(api.users.leaveClub);
   const swipedRowRefs = useRef(new Set()); // Track which rows already triggered leave
+  const isWeb = Platform.OS === "web";
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const handleOpenSheet = () => {
     bottomSheetRef.current?.expand(); // opens to the first snap point
   };
   const handleCloseSheet = () => {
-    bottomSheetRef.current?.close(); // opens to the first snap point
+    if (isWeb) {
+      setWebModalVisible(false);
+    } else {
+      bottomSheetRef.current?.close();
+    }
     forceRerender();
   };
+
+  const modalTitle = () => {
+    switch (bottomSheetMode) {
+      case 0:
+        return "Create Club";
+      case 1:
+        return "Create Announcement";
+      case 2:
+        return "Create Event";
+      case 3:
+        return currentChild?.fullName + "'s Clubs";
+      default:
+        return "";
+    }
+  };
+
   const [refreshKey, setRefreshKey] = useState(0);
 
   const forceRerender = () => setRefreshKey((k) => k + 1);
@@ -70,6 +94,10 @@ export default function index() {
   };
   const screenWidth = Dimensions.get("window").width;
   const school = currentUser?.userData.school;
+  const fullSchoolClubs =
+    useQuery(api.clubs.getClubList, {
+      clubList: currentUser?.userData.school?.clubList ?? [],
+    }) ?? [];
 
   const rawClubList = currentUser?.userData.clubs ?? [];
   const [bottomSheetMode, setBottomMode] = useState<number>(0); // 0 for club creation, 1 for announcement, 2 for event
@@ -91,24 +119,64 @@ export default function index() {
   }, [currentUser?.userData.approvedChildren]);
 
   const clubList = useMemo(() => {
-    return (currentUser?.userData.clubs ?? []).filter(
-      (c): c is NonNullable<typeof c> => c !== null,
-    );
-  }, [currentUser?.userData.clubs]);
-  const [clubData, setClubData] = useState<typeof clubList>(clubList);
+    const source = currentUser?.userData.clubs;
+
+    return (source ?? []).filter((c): c is NonNullable<typeof c> => c !== null);
+  }, [currentUser?.userData.clubs, currentUser?.userData.role]);
+
+  const headClubs = useMemo(() => {
+    const source = fullSchoolClubs;
+
+    return (source ?? [])
+      .filter((c): c is NonNullable<typeof c> => c !== null)
+      .filter(
+        (c) => !currentUser?.userData.clubs.map((c) => c?._id).includes(c._id),
+      );
+  }, [
+    currentUser?.userData.clubs,
+    currentUser?.userData.role,
+    fullSchoolClubs,
+  ]);
+
   const [localClubs, setLocalClubs] = useState(clubList);
+
+  const [webModalVisible, setWebModalVisible] = useState(false);
+
   const handleClubPress = () => {
-    setBottomMode(0);
-    handleOpenSheet();
+    if (isWeb) {
+      router.push("/(tabs)/create");
+    } else {
+      setBottomMode(0);
+      isWeb ? setWebModalVisible(true) : handleOpenSheet();
+    }
   };
   const handleAnnouncementPress = () => {
     setBottomMode(1);
-    handleOpenSheet();
+    isWeb ? setWebModalVisible(true) : handleOpenSheet();
   };
   const handleEventPress = () => {
     setBottomMode(2);
-    handleOpenSheet();
+    isWeb ? setWebModalVisible(true) : handleOpenSheet();
   };
+
+  const [currentChild, setCurrentChild] = useState<Doc<"users"> | undefined>(
+    undefined,
+  );
+  const handleChildPress = (child: Doc<"users">) => {
+    setBottomMode(3);
+    isWeb ? setWebModalVisible(true) : handleOpenSheet();
+    setCurrentChild(child);
+  };
+
+  const childClubs = appChildList.map((c) => c.clubs).flat();
+  const fullChildClubs =
+    useQuery(api.clubs.getClubList, {
+      clubList: childClubs,
+    }) ?? [];
+
+  const childEvents = fullChildClubs.map((c) => c.eventList).flat();
+
+  const userEvents = clubList.map((c) => c.eventList).flat();
   useEffect(() => {
     setLocalClubs(clubList);
   }, [clubList]);
@@ -151,7 +219,6 @@ export default function index() {
   }
 
   const routeToManager = (club: Id<"clubs">) => {
-    console.log("routed to management");
     router.push({
       pathname: "/club/clubManagement",
       params: { clubId: club.toString(), tabIndex: 0 },
@@ -167,17 +234,33 @@ export default function index() {
     (!currentUser.userData.clubs || currentUser.userData.clubs.length === 0) &&
     (!currentUser.userData.requestedClubs ||
       currentUser.userData.requestedClubs.length === 0);
-  const DATA = [
+  const isApproved = (child: Doc<"users">) => {
+    return appChildList.includes(child);
+  };
+  let DATA = [
     {
       title: "Joined Clubs",
       data: localClubs,
     },
-    {
-      title: "Pending Clubs",
-      data: pendingClubList,
-    },
   ];
-
+  if (pendingClubList.length > 0) {
+    DATA = [
+      ...DATA,
+      {
+        title: "Pending Clubs",
+        data: pendingClubList,
+      },
+    ];
+  }
+  if (isHeadAdmin(currentUser.userData.role) && headClubs.length > 0) {
+    DATA = [
+      ...DATA,
+      {
+        title: "Other School Clubs",
+        data: headClubs,
+      },
+    ];
+  }
   const PARENT_DATA = [
     {
       title: "Added Children",
@@ -226,7 +309,7 @@ export default function index() {
               {!currentUser.userData.school
                 ? "Tap the school icon " +
                   (isHeadAdmin(role)
-                    ? " to create a school!"
+                    ? "to create or join a school!"
                     : "and join a school to " +
                       (isStudent(role)
                         ? "join and participate in clubs!"
@@ -238,18 +321,38 @@ export default function index() {
           </>
         )}
       </View>
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {!isParent(role) && school && !noClubs && (
           <>
             {/*  <HomeDashboard />*/}
-            <Pager
-              pages={[
-                <HomeDashboard />,
-                <View>
-                  <Text style={{ color: COLORS.textPrimary }}>Blud</Text>
-                </View>,
-              ]}
-            />
+            {/*<Pager pages={[<HomeDashboard inputEventIds={userEvents} />]} />*/}
+            <View
+              style={{
+                backgroundColor: COLORS.surface,
+
+                borderRadius: 25,
+
+                paddingVertical: 15,
+                alignSelf: "center",
+                alignItems: "center",
+
+                marginBottom: 15,
+                marginTop: 20,
+                width: isWeb ? screenWidth * 0.66 : screenWidth * 0.95,
+                justifyContent: "center",
+
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.05)",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
+            >
+              <HomeDashboard inputEventIds={userEvents} />
+            </View>
+
             <View style={styles.cardsContainer}>
               <SectionList
                 sections={DATA}
@@ -261,6 +364,7 @@ export default function index() {
                       onPress={() => routeToManager(item._id)}
                       club={item}
                       joinCard={false}
+                      inBrowse={false}
                       canManage={
                         !currentUser.userData.requestedClubs
                           .map((club) => {
@@ -287,28 +391,76 @@ export default function index() {
             </View>
           </>
         )}
-        {isParent(role) && (
+
+        {isParent(role) && currentUser.userData.school && (
           <>
-            <Pager
+            {/* <Pager
               pages={[
-                <HomeDashboard />,
+                <HomeDashboard inputEventIds={childEvents} />,
                 <View>
                   <Text style={{ color: COLORS.textPrimary }}>Blud</Text>
                 </View>,
               ]}
-            />
-            <View style={styles.cardsContainer}>
+            />*/}
+            <View
+              style={{
+                backgroundColor: COLORS.surface,
+
+                borderRadius: 25,
+
+                paddingVertical: 15,
+                alignSelf: "center",
+                alignItems: "center",
+
+                marginBottom: 15,
+                marginTop: 20,
+                width: isWeb ? screenWidth * 0.66 : screenWidth * 0.95,
+                justifyContent: "center",
+
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.05)",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
+            >
+              <HomeDashboard inputEventIds={childEvents} />
+            </View>
+            <View
+              style={[
+                styles.cardsContainer,
+                isWeb && {
+                  maxWidth: 1600,
+                  alignSelf: "center",
+                  width: "100%",
+                },
+              ]}
+            >
               <SectionList
                 sections={PARENT_DATA}
                 keyExtractor={(item) => item._id.toString()}
                 contentContainerStyle={{ padding: 16 }}
                 renderItem={({ item }) => (
-                  <View>
+                  <View
+                    style={
+                      isWeb && {
+                        maxWidth: 1280,
+                        alignSelf: "center",
+                        width: "100%",
+                      }
+                    }
+                  >
                     <ChildCard
                       userPFP={item.profilePicture}
                       name={item.fullName}
                       email={item.email}
-                      onPress={() => {}}
+                      onCardPress={
+                        isApproved(item)
+                          ? () => handleChildPress(item)
+                          : undefined
+                      }
                       approved={currentUser.userData.approvedChildren
                         .map((c) => c?._id)
                         .includes(item._id)}
@@ -338,13 +490,15 @@ export default function index() {
           bottom: 60,
         }}
       >
-        {school && hasAdminAccess(role) && (
-          <NewFAB
-            clubPress={handleClubPress}
-            announcementPress={handleAnnouncementPress}
-            eventPress={handleEventPress}
-          />
-        )}
+        {school &&
+          isAdmin(currentUser.userData.role) &&
+          !!(currentUser?.userData?.approvedAdmin ?? undefined) && (
+            <NewFAB
+              clubPress={handleClubPress}
+              announcementPress={handleAnnouncementPress}
+              eventPress={handleEventPress}
+            />
+          )}
       </View>
       {/* Text and arrow if the user is not in a school */}
 
@@ -369,7 +523,7 @@ export default function index() {
             </TouchableOpacity>
           </View>
         )}*/}
-      {
+      {!currentUser.userData.school && !isWeb && (
         <View
           style={{
             alignItems: "flex-end",
@@ -379,61 +533,111 @@ export default function index() {
             flex: 1,
           }}
         >
-          {!currentUser.userData.school && (
-            <AntDesign name="arrow-down" size={40} color={COLORS.textPrimary} />
-          )}
+          {<AntDesign name="arrow-down" size={40} color={COLORS.textPrimary} />}
         </View>
-      }
+      )}
       {school && (
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={-1}
-          snapPoints={snapPoints}
-          enablePanDownToClose={true}
-          style={{ backgroundColor: COLORS.surface }}
-          backgroundStyle={{
-            backgroundColor: COLORS.surface,
-            borderRadius: 20,
-          }}
-          handleIndicatorStyle={{ backgroundColor: COLORS.textSecondary }}
-          backgroundComponent={CustomBackground}
-          keyboardBehavior="interactive"
-          keyboardBlurBehavior="restore"
-        >
-          <BottomSheetScrollView style={{ paddingBottom: 30 }}>
-            {bottomSheetMode === 0 && (
-              <CreateSceenComp
-                onCreate={handleCloseSheet}
-                editing={false}
-                key={refreshKey}
-              />
-            )}
-            {bottomSheetMode === 1 && (
-              <CreateAnnouncement
-                back={() => handleCloseSheet()}
-                key={refreshKey}
-                trigger={createTrigger}
-              />
-            )}
-            {bottomSheetMode === 2 && (
-              <CreateEvent
-                back={() => handleCloseSheet()}
-                key={refreshKey}
-                error={() => {
-                  Toast.show({
-                    type: "error",
-                    text1: "Event Create Failed",
-                    text2: "Missing Required Fields",
-                    position: "top",
-                    visibilityTime: 2500,
-                    topOffset: 50,
-                  });
-                  handleHaptics();
-                }}
-              />
-            )}
-          </BottomSheetScrollView>
-        </BottomSheet>
+        <>
+          {!isWeb && (
+            <BottomSheet
+              ref={bottomSheetRef}
+              index={-1}
+              snapPoints={snapPoints}
+              enablePanDownToClose={true}
+              style={{ backgroundColor: COLORS.surface }}
+              backgroundStyle={{
+                backgroundColor: COLORS.surface,
+                borderRadius: 20,
+              }}
+              handleIndicatorStyle={{ backgroundColor: COLORS.textSecondary }}
+              backgroundComponent={CustomBackground}
+              keyboardBehavior="interactive"
+              keyboardBlurBehavior="restore"
+            >
+              <BottomSheetScrollView style={{ paddingBottom: 30 }}>
+                {bottomSheetMode === 0 && (
+                  <CreateSceenComp
+                    onCreate={handleCloseSheet}
+                    editing={false}
+                    key={refreshKey}
+                  />
+                )}
+                {bottomSheetMode === 1 && (
+                  <CreateAnnouncement
+                    back={() => handleCloseSheet()}
+                    key={refreshKey}
+                    trigger={createTrigger}
+                  />
+                )}
+                {bottomSheetMode === 2 && (
+                  <CreateEvent
+                    back={() => handleCloseSheet()}
+                    key={refreshKey}
+                    error={() => {
+                      Toast.show({
+                        type: "error",
+                        text1: "Event Create Failed",
+                        text2: "Missing Required Fields",
+                        position: "top",
+                        visibilityTime: 2500,
+                        topOffset: 50,
+                      });
+                      handleHaptics();
+                    }}
+                  />
+                )}
+                {bottomSheetMode === 3 && currentChild && (
+                  <ChildClubs
+                    child={currentChild}
+                    onClubPress={routeToManager}
+                  />
+                )}
+              </BottomSheetScrollView>
+            </BottomSheet>
+          )}
+          {isWeb && (
+            <WebCreateModal
+              visible={webModalVisible}
+              onClose={handleCloseSheet}
+              title={modalTitle()}
+            >
+              {bottomSheetMode === 0 && (
+                <CreateSceenComp
+                  onCreate={handleCloseSheet}
+                  editing={false}
+                  key={refreshKey}
+                />
+              )}
+              {bottomSheetMode === 1 && (
+                <CreateAnnouncement
+                  back={() => handleCloseSheet()}
+                  key={refreshKey}
+                  trigger={createTrigger}
+                />
+              )}
+              {bottomSheetMode === 2 && (
+                <CreateEvent
+                  back={() => handleCloseSheet()}
+                  key={refreshKey}
+                  error={() => {
+                    Toast.show({
+                      type: "error",
+                      text1: "Event Create Failed",
+                      text2: "Missing Required Fields",
+                      position: "top",
+                      visibilityTime: 2500,
+                      topOffset: 50,
+                    });
+                    handleHaptics();
+                  }}
+                />
+              )}
+              {bottomSheetMode === 3 && currentChild && (
+                <ChildClubs child={currentChild} onClubPress={routeToManager} />
+              )}
+            </WebCreateModal>
+          )}
+        </>
       )}
     </View>
   );

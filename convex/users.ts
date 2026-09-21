@@ -60,6 +60,180 @@ export const updateUserProfile = mutation({
   },
 });
 
+export const deleteCurrentUser = mutation({
+  handler: async (ctx) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const userId = currentUser._id;
+
+    const schools = await ctx.db.query("schools").collect();
+    for (const school of schools) {
+      const userList = school.userList.filter((id) => id !== userId);
+      const adminList = school.adminList?.filter((id) => id !== userId);
+      const pendingAdminList = school.pendingAdminList?.filter(
+        (id) => id !== userId,
+      );
+
+      if (
+        userList.length !== school.userList.length ||
+        adminList?.length !== school.adminList?.length ||
+        pendingAdminList?.length !== school.pendingAdminList?.length
+      ) {
+        await ctx.db.patch(school._id, {
+          userList,
+          adminList,
+          pendingAdminList,
+        });
+      }
+    }
+
+    const clubs = await ctx.db.query("clubs").collect();
+    for (const club of clubs) {
+      const members = club.members.filter((member) => member.userId !== userId);
+      const pendingMembers = club.pendingMembers?.filter((id) => id !== userId);
+      const advisors = club.advisors?.filter((id) => id !== userId);
+      const pendingAdvisors = club.pendingAdvisors?.filter(
+        (id) => id !== userId,
+      );
+      const officers = club.officers?.filter((id) => id !== userId);
+
+      if (
+        members.length !== club.members.length ||
+        pendingMembers?.length !== club.pendingMembers?.length ||
+        advisors?.length !== club.advisors?.length ||
+        pendingAdvisors?.length !== club.pendingAdvisors?.length ||
+        officers?.length !== club.officers?.length
+      ) {
+        await ctx.db.patch(club._id, {
+          members,
+          pendingMembers,
+          advisors,
+          pendingAdvisors,
+          officers,
+        });
+      }
+    }
+
+    const groupChats = await ctx.db.query("groupChats").collect();
+    for (const groupChat of groupChats) {
+      const members = groupChat.members.filter(
+        (member) => member.user !== userId,
+      );
+      if (members.length !== groupChat.members.length) {
+        await ctx.db.patch(groupChat._id, { members });
+      }
+    }
+
+    const users = await ctx.db.query("users").collect();
+    for (const user of users) {
+      if (user._id === userId) continue;
+
+      const requestedParents = user.requestedParents?.filter(
+        (id) => id !== userId,
+      );
+      const approvedParents = user.approvedParents?.filter(
+        (id) => id !== userId,
+      );
+      const requestedChildren = user.requestedChildren?.filter(
+        (id) => id !== userId,
+      );
+      const approvedChildren = user.approvedChildren?.filter(
+        (id) => id !== userId,
+      );
+
+      if (
+        requestedParents?.length !== user.requestedParents?.length ||
+        approvedParents?.length !== user.approvedParents?.length ||
+        requestedChildren?.length !== user.requestedChildren?.length ||
+        approvedChildren?.length !== user.approvedChildren?.length
+      ) {
+        await ctx.db.patch(user._id, {
+          requestedParents,
+          approvedParents,
+          requestedChildren,
+          approvedChildren,
+        });
+      }
+    }
+
+    const joinRequests = await ctx.db.query("joinRequests").collect();
+    for (const request of joinRequests) {
+      if (request.userId === userId) {
+        await ctx.db.delete(request._id);
+      }
+    }
+
+    const events = await ctx.db.query("events").collect();
+    const deletedEventIds = new Set(
+      events
+        .filter((event) => event.creator === userId)
+        .map((event) => event._id),
+    );
+    for (const event of events) {
+      if (deletedEventIds.has(event._id)) {
+        await ctx.db.delete(event._id);
+      } else if (event.studentList?.includes(userId)) {
+        await ctx.db.patch(event._id, {
+          studentList: event.studentList.filter((id) => id !== userId),
+        });
+      }
+    }
+    for (const club of clubs) {
+      if (club.eventList.some((id) => deletedEventIds.has(id))) {
+        await ctx.db.patch(club._id, {
+          eventList: club.eventList.filter((id) => !deletedEventIds.has(id)),
+        });
+      }
+    }
+    for (const school of schools) {
+      if (school.eventList?.some((id) => deletedEventIds.has(id))) {
+        await ctx.db.patch(school._id, {
+          eventList: school.eventList.filter((id) => !deletedEventIds.has(id)),
+        });
+      }
+    }
+
+    const announcements = await ctx.db.query("announcements").collect();
+    const deletedAnnouncementIds = new Set(
+      announcements
+        .filter((announcement) => announcement.postedBy === userId)
+        .map((announcement) => announcement._id),
+    );
+    for (const announcement of announcements) {
+      if (deletedAnnouncementIds.has(announcement._id)) {
+        await ctx.db.delete(announcement._id);
+      } else if (
+        announcement.event &&
+        deletedEventIds.has(announcement.event)
+      ) {
+        await ctx.db.patch(announcement._id, { event: undefined });
+      }
+    }
+    for (const club of clubs) {
+      if (club.announcementList.some((id) => deletedAnnouncementIds.has(id))) {
+        await ctx.db.patch(club._id, {
+          announcementList: club.announcementList.filter(
+            (id) => !deletedAnnouncementIds.has(id),
+          ),
+        });
+      }
+    }
+    for (const school of schools) {
+      if (
+        school.announcementList?.some((id) => deletedAnnouncementIds.has(id))
+      ) {
+        await ctx.db.patch(school._id, {
+          announcementList: school.announcementList.filter(
+            (id) => !deletedAnnouncementIds.has(id),
+          ),
+        });
+      }
+    }
+
+    await ctx.db.delete(userId);
+    return true;
+  },
+});
+
 export const joinClub = mutation({
   args: {
     clubId: v.id("clubs"),
@@ -72,40 +246,80 @@ export const joinClub = mutation({
 
     const club = await ctx.db.get(args.clubId);
     if (!club) throw new Error("Club not found");
+    const school = await ctx.db.get(club.school);
+    if (!school) return;
+    const isStudent = currentUser.role === "student";
+    const adminsNeedApproval =
+      school.configurations?.clubAdminsNeedApproval === true &&
+      club.configurations?.adminsNeedApproval === true;
 
-    await ctx.db.patch(currentUser._id, {
-      clubs: [...currentUser.clubs, args.clubId],
-      chats: club.groupChat
-        ? [...(currentUser.chats ?? []), club.groupChat]
-        : [...(currentUser.chats ?? [])],
-    });
-    const chat = club.groupChat ? await ctx.db.get(club.groupChat) : undefined;
-    if (club.groupChat && chat) {
-      await ctx.db.patch(club.groupChat, {
-        members: [
-          ...chat.members,
-          { lastRead: chat.messages[0]?.message ?? "", user: currentUser._id },
-        ],
+    const needsApproval = club.restricted || (!isStudent && adminsNeedApproval);
+
+    if (!needsApproval) {
+      if (isStudent) {
+        await ctx.db.patch(args.clubId, {
+          members: [
+            ...(club.members ?? []),
+            {
+              userId: currentUser._id,
+              dateJoined: args.currentDate,
+            },
+          ],
+          numMembers: (club.numMembers ?? 0) + 1,
+        });
+      } else {
+        await ctx.db.patch(args.clubId, {
+          advisors: [...(club.advisors ?? []), currentUser._id],
+          members: [
+            ...(club.members ?? []),
+            {
+              userId: currentUser._id,
+              dateJoined: args.currentDate,
+            },
+          ],
+        });
+      }
+
+      await ctx.db.patch(currentUser._id, {
+        clubs: [...(currentUser.clubs ?? []), args.clubId],
+        chats: club.groupChat
+          ? [...(currentUser.chats ?? []), club.groupChat]
+          : [...(currentUser.chats ?? [])],
       });
-    }
 
-    await ctx.db.patch(args.clubId, {
-      members: [
-        ...(club.members ?? []),
-        { userId: currentUser._id, dateJoined: args.currentDate },
-      ],
-      numMembers: (club.numMembers ?? 0) + 1,
-    });
+      const chat = club.groupChat
+        ? await ctx.db.get(club.groupChat)
+        : undefined;
+
+      if (club.groupChat && chat) {
+        await ctx.db.patch(club.groupChat, {
+          members: [
+            ...chat.members,
+            {
+              lastRead: chat.messages[0]?.message ?? "",
+              user: currentUser._id,
+            },
+          ],
+        });
+      }
+    } else {
+      await ctx.db.patch(currentUser._id, {
+        requestedClubs: [...(currentUser.requestedClubs ?? []), args.clubId],
+      });
+
+      if (isStudent) {
+        await ctx.db.patch(args.clubId, {
+          pendingMembers: [...(club.pendingMembers ?? []), currentUser._id],
+        });
+      } else {
+        await ctx.db.patch(args.clubId, {
+          pendingAdvisors: [...(club.pendingAdvisors ?? []), currentUser._id],
+        });
+      }
+    }
   },
 });
-export const exitChat = mutation({
-  handler: async (ctx) => {
-    const user = await getAuthenticatedUser(ctx);
-    await ctx.db.patch(user._id, {
-      currentChat: undefined,
-    });
-  },
-});
+
 export const requestJoinClub = mutation({
   args: {
     clubId: v.id("clubs"),
@@ -137,6 +351,72 @@ export const requestJoinClub = mutation({
     }
   },
 });
+export const exitChat = mutation({
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    await ctx.db.patch(user._id, {
+      currentChat: undefined,
+    });
+  },
+});
+export const assignAdvisors = mutation({
+  args: {
+    clubId: v.id("clubs"),
+    advisorIds: v.array(v.id("users")),
+    currentDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const club = await ctx.db.get(args.clubId);
+    if (!club) throw new Error("Club not found");
+
+    const existingAdvisors = club.advisors ?? [];
+    const newAdvisorIds = args.advisorIds.filter(
+      (id) => !existingAdvisors.includes(id),
+    );
+
+    if (newAdvisorIds.length === 0) return;
+    const newMembers = args.advisorIds.map((a) => ({
+      dateJoined: args.currentDate,
+      userId: a,
+    }));
+    // Update the club's advisor list, and clear these users out of pendingAdvisors if present
+    await ctx.db.patch(args.clubId, {
+      advisors: [...existingAdvisors, ...newAdvisorIds],
+      pendingAdvisors: (club.pendingAdvisors ?? []).filter(
+        (id) => !newAdvisorIds.includes(id),
+      ),
+      members: [...club.members, ...newMembers],
+    });
+
+    // Add the club to each advisor's own record (mirrors joinClub's bookkeeping)
+    const chat = club.groupChat ? await ctx.db.get(club.groupChat) : undefined;
+    for (const advisorId of newAdvisorIds) {
+      const advisor = await ctx.db.get(advisorId);
+      if (!advisor) continue;
+
+      if (advisor.clubs.includes(args.clubId)) continue;
+
+      await ctx.db.patch(advisorId, {
+        clubs: [...advisor.clubs, args.clubId],
+        numClubs: (advisor.numClubs ?? 0) + 1,
+        requestedClubs: (advisor.requestedClubs ?? []).filter(
+          (id) => id !== args.clubId,
+        ),
+        chats: club.groupChat
+          ? [...(advisor.chats ?? []), club.groupChat]
+          : [...(advisor.chats ?? [])],
+      });
+      if (club.groupChat && chat) {
+        await ctx.db.patch(club.groupChat, {
+          members: [
+            ...chat.members,
+            { lastRead: chat.messages[0]?.message ?? "", user: advisor._id },
+          ],
+        });
+      }
+    }
+  },
+});
 
 export const joinSchool = mutation({
   args: {
@@ -165,16 +445,28 @@ export const joinSchool = mutation({
         userList: [...(school.userList ?? []), currentUser._id],
       });
     }
-    if (currentUser.role === "administrator") {
-      await ctx.db.patch(school._id, {
-        pendingAdminList: [
-          ...(school?.pendingAdminList ?? []),
-          currentUser._id,
-        ],
-      });
-      await ctx.db.patch(currentUser._id, {
-        approvedAdmin: false,
-      });
+    if (
+      currentUser.role === "administrator" ||
+      currentUser.role === "superAdmin"
+    ) {
+      if (school.configurations?.adminsNeedApproval) {
+        await ctx.db.patch(school._id, {
+          pendingAdminList: [
+            ...(school?.pendingAdminList ?? []),
+            currentUser._id,
+          ],
+        });
+        await ctx.db.patch(currentUser._id, {
+          approvedAdmin: false,
+        });
+      } else {
+        await ctx.db.patch(school._id, {
+          adminList: [...(school?.adminList ?? []), currentUser._id],
+        });
+        await ctx.db.patch(currentUser._id, {
+          approvedAdmin: true,
+        });
+      }
     }
     return { schoolId: school._id };
   },
@@ -200,12 +492,8 @@ export const updateUserRole = mutation({
 export const getUserData = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const userTest = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-    if (!userTest) return undefined;
     const currentUser = await getAuthenticatedUser(ctx);
+    if (currentUser.clerkId !== args.clerkId) return undefined;
 
     const school = currentUser.school
       ? await ctx.db.get(currentUser.school)
@@ -225,17 +513,17 @@ export const getUserData = query({
 
     const reqChild = currentUser.requestedChildren
       ? await Promise.all(
-          currentUser.requestedChildren.map((c) => ctx.db.get(c))
+          currentUser.requestedChildren.map((c) => ctx.db.get(c)),
         )
       : [];
     const appChild = currentUser.approvedChildren
       ? await Promise.all(
-          currentUser.approvedChildren.map((c) => ctx.db.get(c))
+          currentUser.approvedChildren.map((c) => ctx.db.get(c)),
         )
       : [];
     const reqParent = currentUser.requestedParents
       ? await Promise.all(
-          currentUser.requestedParents.map((c) => ctx.db.get(c))
+          currentUser.requestedParents.map((c) => ctx.db.get(c)),
         )
       : [];
     const appParent = currentUser.approvedParents
@@ -276,6 +564,24 @@ export const getSpecificUser = query({
       school,
       clubs,
       requestedClubs,
+    };
+  },
+});
+
+export const getManyUsers = query({
+  args: { users: v.optional(v.array(v.id("users"))) },
+  handler: async (ctx, args) => {
+    if (!args.users) return;
+    const users = await Promise.all(
+      args.users.map(async (m) => {
+        const user = await ctx.db.get(m);
+        return {
+          ...user,
+        };
+      }),
+    );
+    return {
+      users,
     };
   },
 });
@@ -448,7 +754,7 @@ export const approveParent = mutation({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
     const parent = await ctx.db.get(args.parentId);
-
+    if (!parent) throw new Error("Parent not found");
     await ctx.db.patch(currentUser._id, {
       requestedParents: [
         ...(currentUser.requestedParents?.filter((u) => u !== args.parentId) ??
@@ -463,9 +769,127 @@ export const approveParent = mutation({
         ...(parent?.requestedChildren?.filter((u) => u !== currentUser._id) ??
           []),
       ],
-    });
-    await ctx.db.patch(args.parentId, {
       approvedChildren: [...(parent?.approvedChildren ?? []), currentUser._id],
     });
+
+    const studentChats = currentUser.chats ?? [];
+    const parentChatIds = new Set(
+      (parent.chats ?? []).map((c) => c.toString()),
+    );
+
+    for (const chatId of studentChats) {
+      const chat = await ctx.db.get(chatId);
+      if (!chat) continue;
+
+      const alreadyMember = chat.members.some(
+        (m) => m.user.toString() === args.parentId.toString(),
+      );
+      if (alreadyMember) continue;
+
+      // add parent as member of the chat
+      await ctx.db.patch(chatId, {
+        members: [
+          ...chat.members,
+          {
+            lastRead: chat.messages[chat.messages.length - 1]?.message ?? "",
+            user: args.parentId,
+          },
+        ],
+      });
+
+      // add chat to parent's chat list if not already there
+      if (!parentChatIds.has(chatId.toString())) {
+        await ctx.db.patch(args.parentId, {
+          chats: [...(parent.chats ?? []), chatId],
+        });
+        parent.chats = [...(parent.chats ?? []), chatId]; // keep local ref in sync for loop
+      }
+    }
+  },
+});
+
+export const removeParent = mutation({
+  args: {
+    parentId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const parent = await ctx.db.get(args.parentId);
+
+    await ctx.db.patch(currentUser._id, {
+      approvedParents: [
+        ...(currentUser.approvedParents?.filter((u) => u !== args.parentId) ??
+          []),
+      ],
+    });
+
+    await ctx.db.patch(args.parentId, {
+      approvedChildren: [
+        ...(parent?.approvedChildren?.filter((u) => u !== currentUser._id) ??
+          []),
+      ],
+      chats: [
+        ...(parent?.chats?.filter(
+          (chatId) =>
+            chatId !==
+            currentUser?.chats?.find((c) => c.toString() === chatId.toString()),
+        ) ?? []),
+      ],
+    });
+
+    for (const chatId of currentUser.chats ?? []) {
+      const chat = await ctx.db.get(chatId);
+      if (!chat) continue;
+
+      await ctx.db.patch(chatId, {
+        members: [
+          ...chat.members
+            .filter((m) => m.user.toString() !== args.parentId.toString())
+            .map((m) => ({ user: m.user, lastRead: m.lastRead })),
+        ],
+      });
+    }
+  },
+});
+
+export const removeChild = mutation({
+  args: {
+    childId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const child = await ctx.db.get(args.childId);
+
+    await ctx.db.patch(currentUser._id, {
+      approvedChildren: [
+        ...(currentUser.approvedChildren?.filter((u) => u !== args.childId) ??
+          []),
+      ],
+      chats: [
+        ...(currentUser.chats?.filter(
+          (chatId) =>
+            chatId !==
+            child?.chats?.find((c) => c.toString() === chatId.toString()),
+        ) ?? []),
+      ],
+    });
+
+    await ctx.db.patch(args.childId, {
+      approvedParents: [
+        ...(child?.approvedParents?.filter((u) => u !== currentUser._id) ?? []),
+      ],
+    });
+    for (const chatId of child?.chats ?? []) {
+      const chat = await ctx.db.get(chatId);
+      if (!chat) continue;
+
+      await ctx.db.patch(chatId, {
+        members: [
+          ...chat.members
+            .filter((m) => m.user.toString() !== currentUser._id.toString())
+            .map((m) => ({ user: m.user, lastRead: m.lastRead })),
+        ],
+      });
+    }
   },
 });

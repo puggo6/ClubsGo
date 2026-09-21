@@ -10,10 +10,11 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: 40,
+    paddingBottom: 140,
     paddingHorizontal: 10,
     paddingVertical: 15,
     width: "100%",
+    bottom: -100,
   },
 
   textInput: {
@@ -100,7 +101,7 @@ export const styles = StyleSheet.create({
     borderRadius: 2,
     marginBottom: 20,
     marginTop: 0,
-    width: "110%",
+    width: "100%",
   },
   chatName: {
     color: COLORS.textPrimary,

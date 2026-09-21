@@ -1,6 +1,6 @@
 import { COLORS } from "@/constants/theme";
 import { Id } from "@/convex/_generated/dataModel";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Platform,
@@ -18,6 +18,8 @@ type props = {
   lastSender: string;
   newMessage: boolean;
   byUser: boolean;
+  inClub: boolean;
+  onDelete?: () => void;
 };
 export default function GroupchatCard({
   onPress,
@@ -28,6 +30,8 @@ export default function GroupchatCard({
   lastSender,
   newMessage,
   byUser,
+  inClub = true,
+  onDelete,
 }: props) {
   const profilePics = profiles.filter((u) => u !== currentUserId);
   const [image0Url, setImage0Url] = useState("");
@@ -67,6 +71,7 @@ export default function GroupchatCard({
           marginRight: 12,
           justifyContent: "center",
           alignItems: "center",
+          width: 50,
         }}
       >
         <View
@@ -76,7 +81,7 @@ export default function GroupchatCard({
             justifyContent: "center",
           }}
         >
-          {image0Url && (
+          {image0Url ? (
             <Image
               source={{ uri: image0Url }}
               style={[
@@ -88,12 +93,16 @@ export default function GroupchatCard({
                 },
               ]}
             />
+          ) : (
+            <></>
           )}
-          {image1Url && (
+          {image1Url ? (
             <Image
               source={{ uri: image1Url }}
               style={[styles.userAvatar, { width: 28, left: -4, zIndex: 2 }]}
             />
+          ) : (
+            <></>
           )}
         </View>
         <View
@@ -104,7 +113,7 @@ export default function GroupchatCard({
             top: -8,
           }}
         >
-          {image2Url && (
+          {image2Url ? (
             <Image
               source={{ uri: image2Url }}
               style={[
@@ -116,12 +125,16 @@ export default function GroupchatCard({
                 },
               ]}
             />
+          ) : (
+            <></>
           )}
-          {image3Url && (
+          {image3Url ? (
             <Image
               source={{ uri: image3Url }}
               style={[styles.userAvatar, { width: 28, left: -4, zIndex: 4 }]}
             />
+          ) : (
+            <></>
           )}
         </View>
       </View>
@@ -134,29 +147,46 @@ export default function GroupchatCard({
           <View style={styles.imgContainer}>
             <Profiles />
           </View>
+
           <View style={{ flexDirection: "column", marginRight: 50 }}>
-            <Text style={styles.clubName}>{name}</Text>
-            {lastMessage !== "No Previous Messages" && (
+            <View style={{ flexDirection: "row" }}>
+              <Text style={styles.clubName}>{name}</Text>
+              {inClub && newMessage && (
+                <View style={{}}>
+                  <View
+                    style={{
+                      aspectRatio: 1,
+                      width: 10,
+                      backgroundColor: COLORS.accentB,
+                      borderRadius: 100,
+                    }}
+                  />
+                </View>
+              )}
+            </View>
+            {
               <Text
                 style={[
                   styles.clubInfo,
                   {
-                    fontFamily: newMessage ? "OpenSansBold" : "OpenSaneRegular",
-                    color: newMessage
-                      ? COLORS.textPrimary
-                      : COLORS.textSecondary,
+                    fontFamily:
+                      inClub && newMessage ? "OpenSansBold" : "OpenSansRegular",
+                    color:
+                      inClub && newMessage
+                        ? COLORS.textPrimary
+                        : COLORS.textSecondary,
                   },
                 ]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {(lastMessage && lastMessage !== "No Previous Messages"
+                {(!!lastMessage && lastMessage !== "No Previous Messages"
                   ? !byUser
                     ? getFirstName(lastSender) + ": "
                     : ""
                   : "") + (lastMessage ?? "")}
               </Text>
-            )}
+            }
           </View>
         </View>
         <View
@@ -168,28 +198,6 @@ export default function GroupchatCard({
           }}
         />
       </View>
-      {newMessage && (
-        <View
-          style={{
-            position: "absolute",
-            alignItems: "flex-end",
-            justifyContent: "flex-end",
-            paddingHorizontal: 30,
-            paddingVertical: 20,
-
-            width: "100%",
-          }}
-        >
-          <View
-            style={{
-              aspectRatio: 1,
-              width: 10,
-              backgroundColor: COLORS.accentB,
-              borderRadius: 100,
-            }}
-          />
-        </View>
-      )}
     </Pressable>
   );
 }
@@ -253,6 +261,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     paddingVertical: 15,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tagsContainer: {
     alignItems: "center",

@@ -1,6 +1,7 @@
 import Calendar from "@/components/calendar";
 import EventCard from "@/components/eventCard";
 import EventListView from "@/components/eventListView";
+import WebCalendar from "@/components/webCalendar";
 import { isHeadAdmin, isParent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
@@ -16,14 +17,23 @@ import { useMutation, useQuery } from "convex/react";
 import dayjs, { Dayjs } from "dayjs";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
+const isWeb = Platform.OS === "web";
+
 export default function calendar() {
   const currentUser = useUserData();
-
   const role = currentUser?.userData.role;
   let masterClubs = currentUser?.userData.clubs ?? [];
   const insets = useSafeAreaInsets();
@@ -32,9 +42,9 @@ export default function calendar() {
     useQuery(api.clubs.getClubList, {
       clubList: currentUser?.userData.school?.clubList ?? [],
     }) ?? [];
-  if (isHeadAdmin(role)) {
+
+  if (isHeadAdmin(role) && currentUser?.userData.approvedAdmin)
     masterClubs = fullSchoolClubs;
-  }
 
   const childrenIds = currentUser?.userData?.approvedChildren
     ?.map((c) => c?._id)
@@ -45,12 +55,12 @@ export default function calendar() {
   });
   const childClubs = rawChildClubs?.map((c) => c?.club);
 
-  if (isParent(role) && childClubs) {
-    masterClubs = childClubs;
-  }
+  if (isParent(role) && childClubs) masterClubs = childClubs;
+
   const clubIds = masterClubs.flatMap((club) => (club ? club.eventList : []));
   let uEventIds = [...clubIds, ...(currentUser?.userData.eventList ?? [])];
   let eventIds: typeof uEventIds = [];
+
   if (isParent(role)) {
     const clubIds = masterClubs.flatMap((club) => (club ? club.eventList : []));
     eventIds = [...clubIds];
@@ -60,19 +70,20 @@ export default function calendar() {
   } else {
     eventIds = uEventIds;
   }
-  console.log(eventIds, "eventId");
-  const events = useQuery(api.events.getManyEvents, {
-    eventIds: eventIds,
-  });
-  console.log(events, "events");
+
+  const eventsA = useQuery(api.events.getManyEvents, { eventIds });
+  const events = eventsA?.filter(
+    (event, index, self) =>
+      index === self.findIndex((e) => e._id === event._id),
+  );
   const handleHaptics = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
+
   const removeEvent = useMutation(api.users.removeEventFromList);
   const handleRemove = (event: Doc<"events">) => {
     if (currentUser?.userData.eventList?.includes(event._id)) {
       removeEvent({ eventId: event._id });
-
       Toast.show({
         type: "success",
         text1: "Event Removed!",
@@ -106,45 +117,98 @@ export default function calendar() {
   const eventDaySet = new Set(
     events
       ? events.map((event) => dayjs(event?.dateNumber).format("YYYY-MM-DD"))
-      : []
+      : [],
   );
 
   const [selectedDay, setSelectedDay] = useState(dayjs());
   const [currentCalDate, setCurrentCalDate] = useState(dayjs());
-  const selectedEvents = events
-    ? events.filter((event) =>
-        dayjs(event?.dateNumber).isSame(selectedDay, "day")
-      )
-    : [];
-
-  const dayEventMap = () => {};
-
   const [pressedDay, setPressedDay] = useState<Dayjs | undefined>(undefined);
   const [onCalendar, setOnCalendar] = useState(false);
 
+  const selectedEvents = events
+    ? events.filter((event) =>
+        dayjs(event?.dateNumber).isSame(selectedDay, "day"),
+      )
+    : [];
+
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  // callbacks
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log("handleSheetChanges", index);
-  }, []);
-
+  const handleSheetChanges = useCallback((index: number) => {}, []);
   const openSheet = useCallback(() => {
     bottomSheetRef.current?.expand();
   }, []);
-
   const snapPoints = useMemo(() => ["20%", "33%", "50%"], []);
 
   const CustomBackground = ({ style }: BottomSheetBackgroundProps) => (
     <View
-      style={[
-        style,
-        {
-          backgroundColor: COLORS.surface,
-          borderRadius: 20,
-        },
-      ]}
+      style={[style, { backgroundColor: COLORS.surface, borderRadius: 20 }]}
     />
+  );
+
+  const handleDayPress = (day: Dayjs) => {
+    if (pressedDay?.isSame(day, "day")) {
+      if (!isWeb) bottomSheetRef.current?.close();
+      setPressedDay(undefined);
+    } else {
+      setPressedDay(day);
+      if (!isWeb) openSheet();
+    }
+    setSelectedDay(day);
+  };
+
+  const routeToManager = (club: Id<"clubs"> | undefined) => {
+    if (club) {
+      router.push({
+        pathname: "/club/clubManagement",
+        params: { clubId: club.toString(), tabIndex: 0 },
+      });
+    }
+  };
+
+  const routeDocToManager = (event: Doc<"events"> | undefined) => {
+    if (event && event.clubId) {
+      router.push({
+        pathname: "/club/clubManagement",
+        params: { clubId: event?.clubId.toString(), tabIndex: 0 },
+      });
+    }
+  };
+
+  const WebEventPanel = () => (
+    <View style={webStyles.eventPanel}>
+      <Text style={webStyles.panelTitle}>
+        {pressedDay ? pressedDay.format("dddd, MMMM D") : "Select a Day"}
+      </Text>
+      <View style={webStyles.panelDivider} />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {pressedDay ? (
+          selectedEvents.length > 0 ? (
+            selectedEvents.map((event) => (
+              <EventCard
+                key={event._id}
+                event={event}
+                inClub={false}
+                onEvent={true}
+                onPress={() => routeToManager(event?.clubId)}
+                onLongPress={() => handleRemove(event)}
+                global={
+                  event.global &&
+                  currentUser?.userData.eventList?.includes(event._id)
+                }
+              />
+            ))
+          ) : (
+            <Text style={webStyles.emptyText}>
+              No events scheduled for this day.
+            </Text>
+          )
+        ) : (
+          <Text style={webStyles.emptyText}>
+            Tap a day on the calendar to see its events.
+          </Text>
+        )}
+      </ScrollView>
+    </View>
   );
 
   return (
@@ -152,7 +216,7 @@ export default function calendar() {
       style={[
         styles.pageContainer,
         {
-          paddingBottom: 200,
+          paddingBottom: !isWeb ? 200 : 0,
           paddingTop: insets.top,
           marginBottom: 0,
           marginRight: insets.right,
@@ -160,9 +224,12 @@ export default function calendar() {
         },
       ]}
     >
+      {/* header */}
       <View style={styles.pageHeader}>
-        <Text style={[styles.headerTitle]}>Calendar</Text>
-        <Text style={[styles.subTitle]}>Tap and Hold an Event to Remove</Text>
+        <Text style={styles.headerTitle}>Calendar</Text>
+        {!isWeb && (
+          <Text style={styles.subTitle}>Tap and Hold an Event to Remove</Text>
+        )}
       </View>
       <LinearGradient
         colors={["#12c2e9", "#c471ed", "#f64f59"]}
@@ -170,101 +237,163 @@ export default function calendar() {
         end={{ x: 1, y: 0 }}
         style={styles.gradientBar}
       />
-      <View style={{ alignItems: "flex-end", marginRight: 15 }}>
-        <View style={{ flexDirection: "row" }}>
-          <Pressable
-            onPress={() => {
-              setPressedDay(undefined);
-              setOnCalendar(true);
-            }}
-          >
-            <Ionicons
-              name="calendar"
-              color={onCalendar ? COLORS.textPrimary : COLORS.textMuted}
-              size={35}
-              style={{ paddingHorizontal: 10 }}
-            />
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              bottomSheetRef.current ? bottomSheetRef.current.close() : null;
-              setPressedDay(undefined);
-              setOnCalendar(false);
-            }}
-          >
-            <Ionicons
-              name="list"
-              color={!onCalendar ? COLORS.textPrimary : COLORS.textMuted}
-              size={40}
-            />
-          </Pressable>
+
+      {/* view toggle */}
+
+      {!isWeb ? (
+        <View style={{ alignItems: "flex-end", marginRight: 15 }}>
+          <View style={{ flexDirection: "row" }}>
+            <Pressable
+              onPress={() => {
+                setPressedDay(undefined);
+                setOnCalendar(true);
+              }}
+            >
+              <Ionicons
+                name="calendar"
+                color={onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                size={35}
+                style={{ paddingHorizontal: 10 }}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                if (!isWeb) bottomSheetRef.current?.close();
+                setPressedDay(undefined);
+                setOnCalendar(false);
+              }}
+            >
+              <Ionicons
+                name="list"
+                color={!onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                size={40}
+              />
+            </Pressable>
+          </View>
         </View>
-      </View>
-      {onCalendar && (
-        <Calendar
-          admin={true}
-          eventList={eventDaySet}
-          onCellPress={(day) => {
-            if (pressedDay?.isSame(day, "day")) {
-              bottomSheetRef.current ? bottomSheetRef.current.close() : null;
-              setPressedDay(undefined);
-            } else setPressedDay(day);
-            setSelectedDay(day);
-            openSheet();
-          }}
-          pressedDay={pressedDay}
-          currentInputDate={currentCalDate}
-          onMonthChange={(newDate) => setCurrentCalDate(newDate)}
-        />
-      )}
-      {!onCalendar && (
-        <View style={{ paddingBottom: 50 }}>
-          <EventListView
-            events={
-              events
-                ? events.filter((e): e is Doc<"events"> => e !== null)
-                : undefined
-            }
-            inClub={false}
-            inCreation={false}
-            onLongPress={handleRemove}
-            inCalendar={true}
-          />
+      ) : (
+        <View style={{ alignItems: "flex-end", marginRight: 15 }}>
+          <View style={{ flexDirection: "row" }}>
+            <Pressable
+              onPress={() => {
+                if (!isWeb) bottomSheetRef.current?.close();
+                setPressedDay(undefined);
+                setOnCalendar(false);
+              }}
+            >
+              <Ionicons
+                name="list"
+                color={!onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                size={40}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setPressedDay(undefined);
+                setOnCalendar(true);
+              }}
+            >
+              <Ionicons
+                name="calendar"
+                color={onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                size={35}
+                style={{ paddingHorizontal: 10 }}
+              />
+            </Pressable>
+          </View>
         </View>
       )}
 
-      <BottomSheet
-        ref={bottomSheetRef}
-        handleIndicatorStyle={{ backgroundColor: COLORS.textSecondary }}
-        onChange={handleSheetChanges}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        style={{ backgroundColor: COLORS.surface }}
-        backgroundStyle={{
-          backgroundColor: COLORS.surface,
-          borderRadius: 20,
-        }}
-        backgroundComponent={CustomBackground}
-        onClose={() => {
-          setPressedDay(undefined);
-        }}
-      >
-        <BottomSheetView
+      {isWeb ? (
+        <>
+          {onCalendar ? (
+            <View style={webStyles.calendarRow}>
+              <View style={webStyles.calendarContainer}>
+                <Calendar
+                  admin={true}
+                  eventList={eventDaySet}
+                  onCellPress={handleDayPress}
+                  pressedDay={pressedDay}
+                  currentInputDate={currentCalDate}
+                  onMonthChange={(newDate) => setCurrentCalDate(newDate)}
+                />
+              </View>
+              <WebEventPanel />
+            </View>
+          ) : (
+            <WebCalendar
+              events={events ?? []}
+              onEventPress={routeDocToManager}
+              onEventLongPress={handleRemove}
+              removal={true}
+              children={currentUser?.userData.approvedChildren
+                .map((c) => c?._id)
+                .filter((c) => c !== undefined)}
+            />
+          )}
+        </>
+      ) : onCalendar ? (
+        <View
           style={{
-            flex: 1,
-            padding: 0,
-            alignItems: "flex-start",
-            backgroundColor: COLORS.surface,
+            alignItems: "center",
+            justifyContent: "center",
+            alignSelf: "center",
           }}
         >
-          <View>
-            {selectedEvents &&
-              selectedEvents.length > 0 &&
-              selectedEvents?.map((event) => (
+          <Calendar
+            admin={true}
+            eventList={eventDaySet}
+            onCellPress={handleDayPress}
+            pressedDay={pressedDay}
+            currentInputDate={currentCalDate}
+            onMonthChange={(newDate) => setCurrentCalDate(newDate)}
+          />
+        </View>
+      ) : (
+        <EventListView
+          events={
+            events
+              ? events.filter((e): e is Doc<"events"> => e !== null)
+              : undefined
+          }
+          inClub={false}
+          inCreation={false}
+          onPress={routeDocToManager}
+          onLongPress={handleRemove}
+          inCalendar={true}
+          childrenIds={childrenIds}
+        />
+      )}
+
+      {!isWeb && (
+        <BottomSheet
+          ref={bottomSheetRef}
+          handleIndicatorStyle={{ backgroundColor: COLORS.textSecondary }}
+          onChange={handleSheetChanges}
+          index={-1}
+          snapPoints={snapPoints}
+          enablePanDownToClose={true}
+          style={{ backgroundColor: COLORS.surface }}
+          backgroundStyle={{
+            backgroundColor: COLORS.surface,
+            borderRadius: 20,
+          }}
+          backgroundComponent={CustomBackground}
+          onClose={() => setPressedDay(undefined)}
+        >
+          <BottomSheetView
+            style={{
+              flex: 1,
+              padding: 0,
+              alignItems: "flex-start",
+              backgroundColor: COLORS.surface,
+            }}
+          >
+            <View>
+              {selectedEvents?.map((event) => (
                 <EventCard
                   key={event?._id}
-                  event={event ? event : undefined}
+                  event={event ?? undefined}
                   inClub={false}
                   onEvent={true}
                   onLongPress={() => handleRemove(event)}
@@ -274,9 +403,55 @@ export default function calendar() {
                   }
                 />
               ))}
-          </View>
-        </BottomSheetView>
-      </BottomSheet>
+            </View>
+          </BottomSheetView>
+        </BottomSheet>
+      )}
     </View>
   );
 }
+
+const webStyles = StyleSheet.create({
+  calendarRow: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 20,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    alignItems: "flex-start",
+  },
+  calendarContainer: {
+    flex: 1,
+  },
+  eventPanel: {
+    width: 600,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    maxHeight: 600,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  panelTitle: {
+    color: COLORS.textPrimary,
+    fontFamily: "PoppinsBold",
+    fontSize: 15,
+    marginBottom: 10,
+  },
+  panelDivider: {
+    height: 1,
+    backgroundColor: COLORS.surfaceAlternate,
+    marginBottom: 12,
+  },
+  emptyText: {
+    color: COLORS.textMuted,
+    fontFamily: "OpenSansRegular",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 24,
+  },
+});

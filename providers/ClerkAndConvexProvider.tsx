@@ -5,7 +5,7 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import React from "react";
 
 const convex = new ConvexReactClient(
-  "https://gregarious-hawk-931.convex.cloud"
+  "https://gregarious-hawk-931.convex.cloud",
 );
 
 export default function ClerkAndConvexProvider({

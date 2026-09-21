@@ -1,9 +1,10 @@
 import GradientButton from "@/components/gradientButton";
+import isWeb from "@/constants/isWeb";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/auth.styles";
 import { useMutation } from "convex/react";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Image,
   SafeAreaView,
@@ -11,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { roleSelected, toggleRoleSelected } from "./login";
+import { toggleRoleSelected } from "./login";
 
 export default function RoleSelect() {
   const [userRole, setUserRole] = useState("student");
@@ -19,24 +20,20 @@ export default function RoleSelect() {
   const updateUserRole = useMutation(api.users.updateUserRole);
   if (!currentUser) return;
   const handleContinue = async () => {
-    console.log(
-      "started continue, ",
-      userRole,
-      " ",
-      currentUser.fullName,
-      " roleselected: ",
-      roleSelected
-    );
     updateUserRole({ userId: currentUser?.userData._id, updateRole: userRole });
     toggleRoleSelected();
-    console.log("roleSelected: ", roleSelected);
   };
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.brandSection}>
         <Image
-          source={require("@/assets/images/flatLogoTag.png")}
-          style={styles.topLogo}
+          source={
+            !isWeb()
+              ? require("@/assets/images/flatLogoTag.png")
+              : require("@/assets/images/largeFlatLogoTag.png")
+          }
+          style={!isWeb() ? { width: "100%" } : { width: "100%", height: 130 }}
+          resizeMode={!isWeb() ? "contain" : "cover"}
         />
         <View style={styles.headerContainter}>
           <Text style={styles.header}>Your account is almost ready!</Text>

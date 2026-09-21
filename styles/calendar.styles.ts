@@ -11,7 +11,6 @@ export const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         marginHorizontal: 125,
-        marginVertical: 60,
       },
       default: {
         marginHorizontal: 8,
