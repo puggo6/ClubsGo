@@ -19,8 +19,7 @@ export default function schoolSeletion() {
   const isNewUser = !currentUser?.userData.school;
   const isAdmin = currentUser?.userData.role == "superAdmin";
   const [headCreate, setHeadCreate] = useState(true);
-  const logTest = () =>
-    console.log(currentUser?.userData.school, " ", isNewUser);
+
   return (
     <TouchableWithoutFeedback
       onPressIn={Platform.OS === "web" ? undefined : Keyboard.dismiss}

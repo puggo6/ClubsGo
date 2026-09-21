@@ -16,7 +16,7 @@ export const createClub = mutation({
 
     location: v.optional(v.string()),
     meetingFrequency: v.optional(v.number()),
-
+    meetingDayTime: v.optional(v.string()),
     applicationDesc: v.optional(v.string()),
     applicationLink: v.optional(v.string()),
     hasDeadline: v.boolean(),
@@ -85,13 +85,20 @@ export const createClub = mutation({
         : undefined,
 
       meetingLocation: args.location,
+      meetingDayTime: args.meetingDayTime,
       meetingFreq: args.meetingFrequency,
       clubPublic: false,
       groupChat: chatId,
       officerRoles: ["President", "Vice President", "Treasurer", "Secretary"],
       restrictedType: args.restrictedType ?? undefined,
     });
-    if (args.deadline) {
+    const applicationDeadline =
+      args.hasDeadline &&
+      args.deadline &&
+      (args.restrictedType === 0 || args.restrictedType === 3)
+        ? args.deadline
+        : undefined;
+    if (applicationDeadline) {
       const eventId = await ctx.db.insert("events", {
         clubId: clubId,
         global: false,
@@ -104,8 +111,8 @@ export const createClub = mutation({
         school: currentSchoolId,
         studentList: [],
         creator: currentUser._id,
-        dateString: args.deadline,
-        dateNumber: args.deadline,
+        dateString: applicationDeadline,
+        dateNumber: applicationDeadline,
         eventType: "Deadline",
       });
 
@@ -205,6 +212,7 @@ export const updateClubInfo = mutation({
     restrictedType: v.optional(v.number()),
 
     location: v.optional(v.string()),
+    meetingDayTime: v.optional(v.string()),
     meetingFrequency: v.optional(v.number()),
 
     applicationDesc: v.optional(v.string()),
@@ -224,6 +232,20 @@ export const updateClubInfo = mutation({
 
     const currentSchoolId = await currentUser.school;
     if (!currentSchoolId) return;
+    const club = await ctx.db.get(args.clubId);
+    if (!club) throw new Error("Club not found");
+
+    const deadlineEvents = await Promise.all(
+      club.eventList.map((eventId) => ctx.db.get(eventId)),
+    );
+    const oldDeadlineIds = deadlineEvents
+      .filter((event) => event?.eventType === "Deadline")
+      .map((event) => event?._id)
+      .filter((eventId): eventId is Id<"events"> => eventId !== undefined);
+    for (const eventId of oldDeadlineIds) {
+      await ctx.db.delete(eventId);
+    }
+    let eventList = club.eventList.filter((id) => !oldDeadlineIds.includes(id));
     await ctx.db.patch(args.clubId, {
       name: args.name,
       clubColor: args.clubColor,
@@ -249,11 +271,18 @@ export const updateClubInfo = mutation({
         : undefined,
 
       meetingLocation: args.location,
+      meetingDayTime: args.meetingDayTime,
       meetingFreq: args.meetingFrequency,
       clubPublic: false,
       restrictedType: args.restrictedType ?? undefined,
     });
-    if (args.deadline) {
+    const applicationDeadline =
+      args.hasDeadline &&
+      args.deadline &&
+      (args.restrictedType === 0 || args.restrictedType === 3)
+        ? args.deadline
+        : undefined;
+    if (applicationDeadline) {
       const eventId = await ctx.db.insert("events", {
         clubId: args.clubId,
         global: false,
@@ -266,14 +295,12 @@ export const updateClubInfo = mutation({
         school: currentSchoolId,
         studentList: [],
         creator: currentUser._id,
-        dateString: args.deadline,
-        dateNumber: args.deadline,
+        dateString: applicationDeadline,
+        dateNumber: applicationDeadline,
         eventType: "Deadline",
       });
 
-      await ctx.db.patch(args.clubId, {
-        eventList: [eventId],
-      });
+      eventList = [...eventList, eventId];
     }
     let newEvents: Id<"events">[] = [];
     if (args.tryoutDate) {
@@ -298,8 +325,8 @@ export const updateClubInfo = mutation({
         events = [...events, eventId];
         newEvents = events;
       }
+      eventList = [...eventList, ...events];
       await ctx.db.patch(args.clubId, {
-        eventList: [...events],
         restricted1: {
           tryoutDate: [...args.tryoutDate],
           tryoutDesc: args.tryoutDesc ?? "",
@@ -307,6 +334,7 @@ export const updateClubInfo = mutation({
         },
       });
     }
+    await ctx.db.patch(args.clubId, { eventList });
     if (args.restrictedType === 0) {
       await ctx.db.patch(args.clubId, {
         restricted0: {
@@ -393,7 +421,11 @@ export const deleteClub = mutation({
   },
 });
 export const getClubData = query({
-  args: { clubId: v.id("clubs"), deleting: v.optional(v.boolean()) },
+  args: {
+    clubId: v.id("clubs"),
+    deleting: v.optional(v.boolean()),
+    includeTryouts: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     console.log("GET CLUB DATAx", args.clubId);
     const club = await ctx.db.get(args.clubId);
@@ -435,7 +467,7 @@ export const getClubData = query({
         announcement !== null,
     );
     let fullTryouts = undefined;
-    if (club.restricted1?.tryoutIds) {
+    if (args.includeTryouts === true && club.restricted1?.tryoutIds) {
       fullTryouts = await Promise.all(
         club.restricted1?.tryoutIds?.map((e) => ctx.db.get(e)),
       );
@@ -452,6 +484,52 @@ export const getClubData = query({
         tryoutDate: club.restricted1?.tryoutDate,
         tryoutDesc: club.restricted1?.tryoutDesc,
       },
+    };
+  },
+});
+
+export const getClubSummary = query({
+  args: { clubId: v.id("clubs") },
+  handler: async (ctx, args) => {
+    const club = await ctx.db.get(args.clubId);
+    if (!club) return;
+
+    const members = await Promise.all(
+      club.members.map(async (member) => ({
+        ...member,
+        user: await ctx.db.get(member.userId),
+      })),
+    );
+    const events = await Promise.all(
+      club.eventList.map((eventId) => ctx.db.get(eventId)),
+    );
+
+    return {
+      _id: club._id,
+      name: club.name,
+      members,
+      eventList: events,
+    };
+  },
+});
+
+export const getClubContext = query({
+  args: { clubId: v.id("clubs") },
+  handler: async (ctx, args) => {
+    const club = await ctx.db.get(args.clubId);
+    if (!club) return;
+
+    const members = await Promise.all(
+      club.members.map(async (member) => ({
+        ...member,
+        user: await ctx.db.get(member.userId),
+      })),
+    );
+
+    return {
+      _id: club._id,
+      name: club.name,
+      members,
     };
   },
 });
@@ -602,7 +680,26 @@ export const getClubList = query({
     clubList: v.array(v.id("clubs")),
   },
   handler: async (ctx, args) => {
-    const clubs = await Promise.all(args.clubList.map((c) => ctx.db.get(c)));
+    const uniqueClubIds = [...new Set(args.clubList)];
+    const clubs = await Promise.all(
+      uniqueClubIds.map((clubId) => ctx.db.get(clubId)),
+    );
+    return clubs.filter(
+      (club): club is NonNullable<typeof club> => club !== null,
+    );
+  },
+});
+
+export const getClubChatList = query({
+  args: { clubList: v.array(v.id("clubs")) },
+  handler: async (ctx, args) => {
+    const clubs = await Promise.all(
+      args.clubList.map(async (clubId) => {
+        const club = await ctx.db.get(clubId);
+        if (!club) return null;
+        return { _id: club._id, groupChat: club.groupChat };
+      }),
+    );
     return clubs.filter(
       (club): club is NonNullable<typeof club> => club !== null,
     );
@@ -695,7 +792,8 @@ export const getNextEventDate = query({
           new Date(e.dateNumber).getTime() > now,
       )
       .sort(
-        (a, b) => new Date(a.dateNumber).getTime() - new Date(b.dateNumber).getTime(),
+        (a, b) =>
+          new Date(a.dateNumber).getTime() - new Date(b.dateNumber).getTime(),
       );
 
     return upcomingMeetings[0]?.dateNumber ?? undefined;

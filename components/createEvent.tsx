@@ -8,21 +8,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import React, { useEffect, useState } from "react";
 import {
-  Keyboard,
-  LayoutChangeEvent,
-  Platform,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Keyboard,
+    LayoutChangeEvent,
+    Platform,
+    Pressable,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { Switch } from "react-native-gesture-handler";
 import { DatePickerModal, TimePickerModal } from "react-native-paper-dates";
 import Animated, {
-  useAnimatedStyle,
-  withTiming,
+    useAnimatedStyle,
+    withTiming,
 } from "react-native-reanimated";
 import EventTag, { availableEventTags } from "./eventTag";
 import { SizeGradientButton } from "./gradientButton";
@@ -42,15 +42,21 @@ type editProps = {
 export default function CreateEvent({ inputClub, back, error }: props) {
   const [startedCreate, setStartedCreate] = useState(false);
   const [local, setLocal] = useState(true); // !local would indicate a global event (local events are club-scoped, global events are school-scoped)
-  console.log('inCreate')
+  console.log("inCreate");
   const [eventTitle, setEventTitle] = useState("");
   const currentUser = useUserData();
   const currentSchool = useQuery(
     api.schools.getSchoolData,
     currentUser?.userData.school?._id
-      ? { schoolId: currentUser.userData.school._id }
+      ? {
+          schoolId: currentUser.userData.school._id,
+          includeUsers: false,
+          includeEvents: false,
+        }
       : "skip",
   );
+  const globalEventsEnabled =
+    currentSchool?.configurations?.globalSchoolPage === true;
   const [hasDescription, setHasDescription] = useState(false);
   const [eventDescription, setEventDescription] = useState("");
 
@@ -77,6 +83,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
 
   let today = new Date();
   const handleLocal = (global: number) => {
+    if (global === 1 && !globalEventsEnabled) return;
     if (global == 1) setLocal(false);
     else setLocal(true);
     console.log("local: ", local);
@@ -290,11 +297,19 @@ export default function CreateEvent({ inputClub, back, error }: props) {
                 <Text style={[styles.globalOpt, { color: COLORS.textMuted }]}>
                   -
                 </Text>
-                <TouchableOpacity onPress={() => handleLocal(1)}>
+                <TouchableOpacity
+                  disabled={!globalEventsEnabled}
+                  onPress={() => handleLocal(1)}
+                >
                   <Text
                     style={[
                       styles.globalOpt,
-                      { color: !local ? COLORS.textPrimary : COLORS.textMuted },
+                      {
+                        color:
+                          !globalEventsEnabled || local
+                            ? COLORS.textMuted
+                            : COLORS.textPrimary,
+                      },
                     ]}
                   >
                     Global

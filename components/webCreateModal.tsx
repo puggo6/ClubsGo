@@ -57,45 +57,38 @@ export const ManagementModal = ({
   width,
 }: Props) => {
   return (
-    <Pressable onPress={onClose}>
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        onRequestClose={onClose}
-      >
-        {/* backdrop */}
-        <View style={styles.backdrop}>
-          {/* stop press from closing when clicking inside modal */}
-          <View
-            style={[
-              styles.modal,
-              width ? { width: width } : {},
-              !isWeb() ? { width: "90%" } : {},
-            ]}
-          >
-            <View style={styles.header}>
-              <Text style={styles.title}>{title}</Text>
-              <Pressable onPress={onClose} style={styles.closeButton}>
-                <AntDesign
-                  name="close"
-                  size={20}
-                  color={COLORS.textSecondary}
-                />
-              </Pressable>
-            </View>
-            <View style={styles.divider} />
-            <ScrollView
-              style={styles.content}
-              contentContainerStyle={{ paddingBottom: 24 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {children}
-            </ScrollView>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable
+          onPress={(event) => event.stopPropagation()}
+          style={[
+            styles.modal,
+            width ? { width: width } : {},
+            !isWeb() ? { width: "90%" } : {},
+          ]}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>{title}</Text>
+            <Pressable onPress={onClose} style={styles.closeButton}>
+              <AntDesign name="close" size={20} color={COLORS.textSecondary} />
+            </Pressable>
           </View>
-        </View>
-      </Modal>
-    </Pressable>
+          <View style={styles.divider} />
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 };
 const styles = StyleSheet.create({

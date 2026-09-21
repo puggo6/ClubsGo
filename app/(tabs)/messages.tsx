@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   SectionList,
@@ -35,13 +36,14 @@ export default function messages() {
   const insets = useSafeAreaInsets();
   const handleOpenChat = useMutation(api.groupChats.handleOpenChat);
   const createGroupChat = useMutation(api.groupChats.createChat);
+  const deleteChat = useMutation(api.groupChats.deleteChat);
   const exitChat = useMutation(api.users.exitChat);
 
   const headAdmin =
     isHeadAdmin(currentUser?.userData.role) &&
     currentUser?.userData.approvedAdmin;
 
-  const clubs = useQuery(api.clubs.getClubList, {
+  const clubs = useQuery(api.clubs.getClubChatList, {
     clubList: currentUser?.userData.school?.clubList ?? [],
   });
 
@@ -124,6 +126,21 @@ export default function messages() {
     });
   };
 
+  const handleDeleteChat = (chatId: Id<"groupChats">) => {
+    Alert.alert(
+      "Delete chat?",
+      "This will permanently delete this conversation.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteChat({ chatId }),
+        },
+      ],
+    );
+  };
+
   if (!currentUser) return <></>;
 
   const snapPoints = ["100", "25%", "50%", "75%"];
@@ -177,6 +194,7 @@ export default function messages() {
         inClub={currentUser.userData.chats
           .map((c) => c?._id)
           .includes(item._id)}
+        onDelete={!item.club ? () => handleDeleteChat(item._id!) : undefined}
       />
     );
   };

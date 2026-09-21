@@ -18,6 +18,3 @@ function generateKey(): string {
 }
 
 const key = generateKey();
-
-console.log("School Creation Key:");
-console.log(key);

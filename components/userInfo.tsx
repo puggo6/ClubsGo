@@ -2,10 +2,13 @@ import { isAdmin } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
+import { useUserData } from "@/hooks/useUserData";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import dayjs from "dayjs";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import React from "react";
 import {
   Modal,
   Pressable,
@@ -24,7 +27,6 @@ type Props = {
   dateJoined?: string; // date joined the club
   isAdvisor?: boolean;
 };
-
 export default function UserInfoModal({
   visible,
   onClose,
@@ -33,10 +35,30 @@ export default function UserInfoModal({
   dateJoined,
   isAdvisor,
 }: Props) {
-  if (!user) return null;
+  const currentUser = useUserData();
+  const router = useRouter();
+  const createDirectChat = useMutation(api.groupChats.createDirectChat);
+  const [startingChat, setStartingChat] = React.useState(false);
   let parents = useQuery(api.users.getManyUsers, {
-    users: user.approvedParents,
+    users: user?.approvedParents,
   });
+
+  if (!user) return null;
+  const isUser = currentUser?.userData._id === user._id;
+  const handleStartChat = async () => {
+    if (!currentUser || startingChat) return;
+    setStartingChat(true);
+    try {
+      const chatId = await createDirectChat({ userId: user._id });
+      onClose();
+      router.push({
+        pathname: "/groupchats/inGroupchat",
+        params: { groupchatId: chatId },
+      });
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   const InfoRow = ({
     icon,
@@ -129,23 +151,29 @@ export default function UserInfoModal({
                   </Text>
                 </View>
               )}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={styles.name}>{user.fullName}</Text>
+              {!isUser && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={styles.name}>{user.fullName}</Text>
 
-                <TouchableOpacity style={styles.messageIcon} onPress={() => {}}>
-                  <Ionicons
-                    name="chatbubble-outline"
-                    size={18}
-                    color={COLORS.textSecondary}
-                  />
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={styles.messageIcon}
+                    onPress={handleStartChat}
+                    disabled={startingChat}
+                  >
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={18}
+                      color={COLORS.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* role badge */}
               <View

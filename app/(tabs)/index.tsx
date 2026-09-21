@@ -175,7 +175,7 @@ export default function index() {
     }) ?? [];
 
   const childEvents = fullChildClubs.map((c) => c.eventList).flat();
-  console.log(appChildList);
+
   const userEvents = clubList.map((c) => c.eventList).flat();
   useEffect(() => {
     setLocalClubs(clubList);

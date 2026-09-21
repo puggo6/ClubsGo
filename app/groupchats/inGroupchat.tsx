@@ -1,3 +1,5 @@
+import DeletionModal from "@/components/deletionModal";
+import { DeleteButton } from "@/components/gradientButton";
 import { SmallMemberCard } from "@/components/memberCard";
 import Message from "@/components/message";
 import { COLORS } from "@/constants/theme";
@@ -40,6 +42,7 @@ export default function InGroupchat() {
 
   const groupchat = useQuery(api.groupChats.getChatInfo, { id: chatId });
   const handleLeave = useMutation(api.groupChats.exitChat);
+  const deleteChat = useMutation(api.groupChats.deleteChat);
   const sendMessage = useMutation(api.groupChats.sendMessage);
 
   const school = currentUser?.userData.school;
@@ -47,7 +50,13 @@ export default function InGroupchat() {
   // ✅ hook always called, not conditionally
   const fullSchool = useQuery(
     api.schools.getSchoolData,
-    school?._id ? { schoolId: school._id } : "skip",
+    school?._id
+      ? {
+          schoolId: school._id,
+          includeClubs: false,
+          includeEvents: false,
+        }
+      : "skip",
   );
 
   const messages = groupchat?.messages;
@@ -55,6 +64,8 @@ export default function InGroupchat() {
 
   const [text, setText] = useState("");
   const [membersVisible, setMembersVisible] = useState(false);
+  const [deleteVisible, setDeleteVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const keyboardOffset = useRef(new Animated.Value(0)).current;
 
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -127,9 +138,28 @@ export default function InGroupchat() {
     }
   };
 
+  const handleDeleteChat = async () => {
+    setDeleting(true);
+    try {
+      await deleteChat({ chatId });
+      router.replace("/messages");
+    } finally {
+      setDeleting(false);
+      setDeleteVisible(false);
+    }
+  };
+
+  const openDeleteConfirmation = () => {
+    setMembersVisible(false);
+    bottomSheetRef.current?.close();
+    setDeleteVisible(true);
+  };
+
   const MembersList = () => (
     <>
-      <Text style={localStyles.membersTitle}>Current Members</Text>
+      <View style={localStyles.membersHeader}>
+        <Text style={localStyles.membersTitle}>Current Members</Text>
+      </View>
       <FlatList
         data={groupchat?.members}
         keyExtractor={(item) => item.toString()}
@@ -285,18 +315,36 @@ export default function InGroupchat() {
             >
               <View style={localStyles.modalHeader}>
                 <Text style={localStyles.membersTitle}>Members</Text>
-                <TouchableOpacity onPress={() => setMembersVisible(false)}>
-                  <AntDesign
-                    name="close"
-                    size={20}
-                    color={COLORS.textSecondary}
-                  />
-                </TouchableOpacity>
+                <View style={localStyles.modalActions}>
+                  {!groupchat?.club && (
+                    <DeleteButton
+                      onPress={openDeleteConfirmation}
+                      title="Delete Chat"
+                      restricted={false}
+                      fixSpacing={true}
+                    />
+                  )}
+                  <TouchableOpacity onPress={() => setMembersVisible(false)}>
+                    <AntDesign
+                      name="close"
+                      size={20}
+                      color={COLORS.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
               <MembersList />
             </Pressable>
           </Pressable>
         </Modal>
+        <DeletionModal
+          title={groupchat?.club ? (groupchat?.name ?? "chat") : "chat"}
+          description="This permanently deletes the conversation for everyone."
+          visible={deleteVisible}
+          onClose={() => setDeleteVisible(false)}
+          onConfirm={handleDeleteChat}
+          loading={deleting}
+        />
       </View>
     );
   }
@@ -449,9 +497,37 @@ export default function InGroupchat() {
         backgroundStyle={{ backgroundColor: COLORS.surface, borderRadius: 20 }}
       >
         <BottomSheetView>
+          <View style={localStyles.modalHeader}>
+            <Text style={localStyles.membersTitle}>Members</Text>
+            <View style={localStyles.modalActions}>
+              {!groupchat?.club && (
+                <DeleteButton
+                  onPress={openDeleteConfirmation}
+                  title="Delete Chat"
+                  restricted={false}
+                  fixSpacing={true}
+                />
+              )}
+              <TouchableOpacity onPress={() => setMembersVisible(false)}>
+                <AntDesign
+                  name="close"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
           <MembersList />
         </BottomSheetView>
       </BottomSheet>
+      <DeletionModal
+        title={groupchat?.name ?? "chat"}
+        description="This permanently deletes the conversation for everyone."
+        visible={deleteVisible}
+        onClose={() => setDeleteVisible(false)}
+        onConfirm={handleDeleteChat}
+        loading={deleting}
+      />
     </View>
   );
 }
@@ -533,6 +609,12 @@ const localStyles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: 12,
   },
+  membersHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+  },
   dateSeparator: {
     fontSize: 13,
     fontFamily: "OpenSansRegular",
@@ -562,5 +644,10 @@ const localStyles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
   },
 });

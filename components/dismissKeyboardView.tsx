@@ -17,7 +17,7 @@ export default function DismissKeyboardView({ children, style }: props) {
       }}
       style={[{ flex: 1, width: "100%" }, style]}
     >
-      {" "}
+      {children}
     </Pressable>
   );
 }

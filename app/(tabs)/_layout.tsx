@@ -49,10 +49,12 @@ const WebTopbar = ({
   inSchool,
   newMessage,
   canCreate,
+  schoolTab,
 }: {
   inSchool: boolean;
   newMessage: boolean;
   canCreate: boolean;
+  schoolTab?: boolean;
 }) => {
   return (
     <View style={styles.topbar}>
@@ -108,13 +110,19 @@ const WebTopbar = ({
           />
         )}
 
-        <SidebarItem
-          href="/schoolSelection"
-          label="School"
-          icon={
-            <Ionicons name="business" size={18} color={COLORS.textSecondary} />
-          }
-        />
+        {(!inSchool || schoolTab) && (
+          <SidebarItem
+            href="/schoolSelection"
+            label="School"
+            icon={
+              <Ionicons
+                name="business"
+                size={18}
+                color={COLORS.textSecondary}
+              />
+            }
+          />
+        )}
 
         <SidebarItem
           href="/settings"
@@ -138,6 +146,10 @@ export default function TabLayout() {
   const canCreate =
     isAdmin(currentUser?.userData.role) &&
     (currentUser?.userData.approvedAdmin ?? false);
+  const schoolTab = currentUser?.userData.school?.configurations
+    ?.globalSchoolPage
+    ? true
+    : false;
   if (isWeb) {
     return (
       <View style={styles.webContainer}>
@@ -145,6 +157,7 @@ export default function TabLayout() {
           inSchool={inSchool}
           newMessage={newMessage}
           canCreate={canCreate}
+          schoolTab={schoolTab}
         />
         <View style={styles.webContent}>
           <Slot />
@@ -159,12 +172,15 @@ export default function TabLayout() {
         screenOptions={{
           tabBarShowLabel: false,
           headerShown: false,
+          sceneStyle: {
+            backgroundColor: COLORS.background,
+          },
           tabBarActiveTintColor: COLORS.primary,
           tabBarInactiveTintColor: COLORS.grey,
           tabBarStyle: {
             backgroundColor: COLORS.background,
             borderTopWidth: 0,
-
+            position: "absolute",
             elevation: 0,
             height: 40,
             paddingBottom: 80,
@@ -254,6 +270,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="business" size={size} color={color} />
             ),
+            href: !inSchool || schoolTab ? undefined : null,
           }}
         />
         <Tabs.Screen

@@ -135,6 +135,9 @@ export const createGlobEvent = mutation({
     const userSchool = await currentUser.school;
     if (!userSchool) throw new Error("user does not belong to a school");
     const schoolObj = await ctx.db.get(userSchool);
+    if (schoolObj?.configurations?.globalSchoolPage !== true) {
+      throw new Error("global events are disabled for this school");
+    }
 
     const eventId = await ctx.db.insert("events", {
       global: true,
@@ -192,14 +195,11 @@ export const getEventData = query({
 export const getManyEvents = query({
   args: { eventIds: v.array(v.id("events")) },
   handler: async (ctx, args) => {
+    const uniqueEventIds = [...new Set(args.eventIds)];
     const events = await Promise.all(
-      args.eventIds.map(async (eventId) => {
+      uniqueEventIds.map(async (eventId) => {
         const event = await ctx.db.get(eventId);
         if (!event) return null;
-
-        const studentList = await Promise.all(
-          event.studentList?.map((id) => ctx.db.get(id)) ?? [],
-        );
 
         return { ...event };
       }),

@@ -27,9 +27,7 @@ export default function login() {
       if (setActive && createdSessionId) {
         await setActive({ session: createdSessionId });
       }
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   };
   return (
     <SafeAreaView style={styles.container}>
@@ -41,7 +39,7 @@ export default function login() {
               : require("@/assets/images/largeFlatLogoTag.png")
           }
           style={!isWeb() ? { width: "100%" } : { width: "100%", height: 130 }}
-          resizeMode="contain"
+          resizeMode={!isWeb() ? "contain" : "cover"}
         />
       </View>
 

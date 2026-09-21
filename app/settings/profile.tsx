@@ -1,11 +1,15 @@
+import DeletionModal from "@/components/deletionModal";
 import DismissKeyboardView from "@/components/dismissKeyboardView";
 import GradeSelector from "@/components/gradeSelection";
+import { ButtonPair } from "@/components/gradientButton";
 import StylizedInput from "@/components/stylizedInput";
+import isWeb from "@/constants/isWeb";
 import { isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/settings.styles";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 import { AntDesign } from "@expo/vector-icons";
 import { useMutation } from "convex/react";
 import * as Haptics from "expo-haptics";
@@ -24,6 +28,8 @@ import Toast from "react-native-toast-message";
 
 export default function profile() {
   const currentUser = useUserData();
+  const { user } = useUser();
+  const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const [newName, setNewName] = React.useState(
     currentUser?.userData.fullName || "",
@@ -36,6 +42,9 @@ export default function profile() {
   const setUserRole = useMutation(api.users.setUserRole);
   const cleanUserFields = useMutation(api.users.cleanUserFields);
   const updateInfo = useMutation(api.users.updateUserProfile);
+  const deleteCurrentUser = useMutation(api.users.deleteCurrentUser);
+  const [deleteVisible, setDeleteVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const handleHaptics = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
@@ -53,6 +62,27 @@ export default function profile() {
       handleHaptics();
     } catch (err) {
       console.error("Failed to update profile:", err);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    setDeleting(true);
+    try {
+      await deleteCurrentUser();
+      await user.delete();
+      await signOut();
+      router.replace("/(auth)/login");
+    } catch (err) {
+      console.error("Failed to delete account:", err);
+      Toast.show({
+        type: "error",
+        text1: "Unable to delete account",
+        text2: "Please try again.",
+        position: "top",
+      });
+      setDeleting(false);
     }
   };
 
@@ -100,10 +130,6 @@ export default function profile() {
     }
   };
 
-  if (!currentUser || !currentUser.userData) {
-    return <Text>Loading...</Text>;
-  }
-
   const translateY = useRef(new Animated.Value(100)).current;
   const isMounted = useRef(false);
   useEffect(() => {
@@ -119,6 +145,9 @@ export default function profile() {
       stiffness: 150,
     }).start();
   }, [hasChanges]);
+  if (!currentUser || !currentUser.userData) {
+    return <Text>Loading...</Text>;
+  }
 
   return (
     <View style={{ backgroundColor: COLORS.background, flex: 1 }}>
@@ -186,6 +215,14 @@ export default function profile() {
               { bottom: 0, transform: [{ translateY }] },
             ]}
           >
+            <View style={{ paddingBottom: 60 }}>
+              <ButtonPair
+                onPress={[() => setDeleteVisible(true)]}
+                buttonTitles={["Delete Account"]}
+                buttonTypes={[2]}
+                buttonWidth={isWeb() ? 600 : 250}
+              />
+            </View>
             <TouchableOpacity
               onPress={handleUpdateInfo}
               style={styles.pressable}
@@ -195,6 +232,15 @@ export default function profile() {
           </Animated.View>
         </DismissKeyboardView>
       </View>
+      <DeletionModal
+        title="your account"
+        description="This permanently deletes your ClubsGo data and Clerk account. Type your full name to confirm."
+        itemName={currentUser.userData.fullName}
+        visible={deleteVisible}
+        onClose={() => setDeleteVisible(false)}
+        onConfirm={handleDeleteAccount}
+        loading={deleting}
+      />
     </View>
   );
 }

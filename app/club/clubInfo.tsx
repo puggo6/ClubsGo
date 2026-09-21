@@ -155,7 +155,7 @@ export default function clubInfo() {
 
   const club = useQuery(
     api.clubs.getClubData,
-    clubId ? { clubId: clubId as Id<"clubs"> } : "skip",
+    clubId ? { clubId: clubId as Id<"clubs">, includeTryouts: true } : "skip",
   );
 
   const restrictedType = club?.restrictedType;
@@ -229,7 +229,9 @@ export default function clubInfo() {
                     ? "As Needed"
                     : "Daily") +
               ((club?.meetingLocation?.length ?? 0 > 0)
-                ? " - " + club?.meetingLocation
+                ? " - " +
+                  club?.meetingLocation +
+                  (club?.meetingDayTime ? ", " + club?.meetingDayTime : "")
                 : "")}
           </Text>
         </View>
@@ -413,7 +415,7 @@ export default function clubInfo() {
         </View>
       )}
 
-      {club?.clubRules && (
+      {!!club?.clubRules && (
         <>
           <Text
             style={[styles.infoSubheaderText, { marginTop: 20 }]}
@@ -434,7 +436,7 @@ export default function clubInfo() {
           marginBottom: 40,
         }}
       >
-        {club?._id &&
+        {!!club?._id &&
           (!isParent(user?.userData?.role) ? (
             <>
               <SizeGradientButton

@@ -19,6 +19,7 @@ type props = {
   newMessage: boolean;
   byUser: boolean;
   inClub: boolean;
+  onDelete?: () => void;
 };
 export default function GroupchatCard({
   onPress,
@@ -30,6 +31,7 @@ export default function GroupchatCard({
   newMessage,
   byUser,
   inClub = true,
+  onDelete,
 }: props) {
   const profilePics = profiles.filter((u) => u !== currentUserId);
   const [image0Url, setImage0Url] = useState("");
@@ -145,6 +147,7 @@ export default function GroupchatCard({
           <View style={styles.imgContainer}>
             <Profiles />
           </View>
+
           <View style={{ flexDirection: "column", marginRight: 50 }}>
             <View style={{ flexDirection: "row" }}>
               <Text style={styles.clubName}>{name}</Text>
@@ -258,6 +261,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     paddingVertical: 15,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tagsContainer: {
     alignItems: "center",

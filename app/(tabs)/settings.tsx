@@ -2,6 +2,7 @@ import { LargeMonochromeButton } from "@/components/gradientButton";
 import LoadingScreen from "@/components/loadingScreen";
 import SettingsButton from "@/components/settingsButton";
 import { APP_VERSION } from "@/constants/appVersion";
+import isWeb from "@/constants/isWeb";
 import { FEEDBACK_FORM_URL } from "@/constants/links";
 import { isAdmin, isHeadAdmin, isParent, isStudent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
@@ -134,7 +135,7 @@ export default function profile() {
         </SettingsButton>
       )}
       {/* add red dot notification indicatior */}
-      {isStudent(role) && (
+      {isStudent(role) && currentUser.userData.school && (
         <SettingsButton
           onPress={() => router.push("/settings/parents")}
           title="Parents"
@@ -148,7 +149,7 @@ export default function profile() {
           />
         </SettingsButton>
       )}
-      {isParent(role) && (
+      {isParent(role) && currentUser.userData.school && (
         <SettingsButton
           onPress={() => router.push("/settings/linkChildren")}
           title="Link Children"
@@ -173,17 +174,23 @@ export default function profile() {
       </SettingsButton>
       <View style={{ height: 40 }} />
       <View
-        style={{
-          justifyContent: "flex-end",
-          flex: 1,
-          width: "100%",
-          alignItems: "center",
-        }}
+        style={[
+          {
+            justifyContent: "flex-end",
+            flex: 1,
+            width: "100%",
+            alignItems: "center",
+          },
+          !isWeb() ? { marginBottom: 60 } : { marginBottom: 20 },
+        ]}
       >
-        <LargeMonochromeButton title="Sign Out" onPress={() => signOut()} />
+        <LargeMonochromeButton
+          title="Sign Out"
+          onPress={() => signOut()}
+          fixSpacing
+        />
         <Text
           style={{
-            marginBottom: 20,
             color: COLORS.textMuted,
             fontFamily: "InterRegular",
           }}

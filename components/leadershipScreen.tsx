@@ -1,17 +1,11 @@
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Feather } from "@expo/vector-icons";
 import { useMutation } from "convex/react";
-import React, { useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ButtonPair } from "./gradientButton";
 import StylizedInput from "./stylizedInput";
 type props = {
@@ -27,6 +21,7 @@ export default function LeadershipScreen({
   const [roles, setRoles] = useState(previousRoles ?? []);
   const saveRoles = useMutation(api.clubs.handleSaveRoles);
   const handleAddRole = (role: string) => {
+    if (role.length < 1) return;
     setRoles([...roles, role]);
     setCurrentRole("");
   };
@@ -50,11 +45,7 @@ export default function LeadershipScreen({
 
   const [currentRole, setCurrentRole] = useState("");
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Configure Leadership Roles</Text>
       </View>
@@ -92,6 +83,7 @@ export default function LeadershipScreen({
         label="Role Label"
         placeholder="Tap to change text..."
         wordCapitalize
+        bottomSheet={!isWeb()}
       />
       <Pressable onPress={() => handleAddRole(currentRole)}>
         <View
@@ -117,14 +109,13 @@ export default function LeadershipScreen({
       </Pressable>
       <View style={{ marginTop: 50 }}>
         <ButtonPair
-          onPressA={handleDiscard}
-          titleA="Discard"
-          onPressB={handleSave}
-          titleB="Save"
+          onPress={[handleDiscard, handleSave]}
+          buttonTitles={["Discard", "Save"]}
+          buttonTypes={[1, 0]}
           buttonWidth={140}
         />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

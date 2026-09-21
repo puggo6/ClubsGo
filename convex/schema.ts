@@ -158,6 +158,7 @@ export default defineSchema({
       v.object({
         adminsNeedApproval: v.boolean(),
         clubAdminsNeedApproval: v.boolean(),
+        globalSchoolPage: v.optional(v.boolean()),
       }),
     ),
   }).index("by_joinCode", ["joinCode"]),

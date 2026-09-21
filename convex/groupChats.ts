@@ -29,6 +29,88 @@ export const createChat = mutation({
     return chatId;
   },
 });
+
+export const createDirectChat = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    if (currentUser._id === args.userId) {
+      throw new Error("Cannot create a chat with yourself");
+    }
+
+    const otherUser = await ctx.db.get(args.userId);
+    if (!otherUser) throw new Error("User not found");
+
+    for (const chatId of currentUser.chats ?? []) {
+      const chat = await ctx.db.get(chatId);
+      if (
+        chat &&
+        !chat.club &&
+        chat.members.length === 2 &&
+        chat.members.some((member) => member.user === currentUser._id) &&
+        chat.members.some((member) => member.user === args.userId)
+      ) {
+        return chatId;
+      }
+    }
+
+    const chatId = await ctx.db.insert("groupChats", {
+      members: [
+        { lastRead: "", user: currentUser._id },
+        { lastRead: "", user: args.userId },
+      ],
+      name: `${currentUser.fullName} and ${otherUser.fullName}`,
+      messages: [],
+    });
+
+    await ctx.db.patch(currentUser._id, {
+      chats: [...(currentUser.chats ?? []), chatId],
+    });
+    await ctx.db.patch(otherUser._id, {
+      chats: [...(otherUser.chats ?? []), chatId],
+    });
+
+    return chatId;
+  },
+});
+
+export const deleteChat = mutation({
+  args: {
+    chatId: v.id("groupChats"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const chat = await ctx.db.get(args.chatId);
+    if (!chat) return;
+
+    if (!chat.members.some((member) => member.user === currentUser._id)) {
+      throw new Error("You are not a member of this chat");
+    }
+
+    if (chat.club) {
+      throw new Error("Club chats cannot be deleted here");
+    }
+
+    for (const member of chat.members) {
+      const user = await ctx.db.get(member.user);
+      if (!user) continue;
+
+      await ctx.db.patch(user._id, {
+        chats: (user.chats ?? []).filter((chatId) => chatId !== args.chatId),
+        newMessages: (user.newMessages ?? []).filter(
+          (chatId) => chatId !== args.chatId,
+        ),
+        currentChat:
+          user.currentChat === args.chatId ? undefined : user.currentChat,
+      });
+    }
+
+    await ctx.db.delete(args.chatId);
+  },
+});
+
 export const getChatInfo = query({
   args: {
     id: v.id("groupChats"),

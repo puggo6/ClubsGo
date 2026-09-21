@@ -16,6 +16,8 @@ type props = {
   nameWidth?: number;
   calendarToggle?: (event: Doc<"events">) => void;
   uEvents?: Id<"events">[];
+  onCancel?: (event: Doc<"events">) => void;
+  onEdit?: (event: Doc<"events">) => void;
 };
 
 export default function EventGroup({
@@ -30,6 +32,8 @@ export default function EventGroup({
   nameWidth,
   calendarToggle,
   uEvents,
+  onCancel,
+  onEdit,
 }: props) {
   const sortedEvents = [...events].sort((a, b) => {
     if (!a.startTime || !b.startTime) return 0;
@@ -97,6 +101,8 @@ export default function EventGroup({
               nameWidth={nameWidth ? nameWidth : undefined}
               cancelled={event.canceled}
               inCalendar={uEvents?.includes(event._id)}
+              onCancel={() => onCancel?.(event)}
+              onEdit={() => onEdit?.(event)}
             />
           );
         })}

@@ -1,3 +1,4 @@
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
@@ -86,7 +87,7 @@ export default function JoinSchool({ onSwitch }: props) {
         <GradientButton
           title="Join"
           onPress={() => handelJoinSchool(code)}
-          fixSpacing
+          fixSpacing={isWeb()}
         />
         {onSwitch && (
           <View style={styles.existingSchoolPrompt}>

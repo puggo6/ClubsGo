@@ -1,17 +1,17 @@
 import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-import { useClubData } from "@/hooks/useClubData";
+import { useClubContext, useClubData } from "@/hooks/useClubData";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import {
-  Pressable,
-  Animated as RNAnimated,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Pressable,
+    Animated as RNAnimated,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { getEventTagColor } from "./eventTag";
@@ -77,7 +77,7 @@ export default function EventCard({
   calendarToggle,
   removal,
 }: props) {
-  const club = useClubData(event?.clubId);
+  const club = useClubContext(event?.clubId);
 
   const [showOptions, setShowOptions] = useState(false);
   const optionsAnimation = useRef(

@@ -43,7 +43,6 @@ import {
   Easing,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   SectionList,
@@ -70,18 +69,15 @@ export default function clubManagement() {
   const cancelEvent = useMutation(api.events.setEventCancelled);
 
   const handleLeave = (clubId: Id<"clubs">) => {
-    console.log("pressed leave");
     leaveClub({ clubId }).catch(() => {});
     router.push("/(tabs)");
   };
   const handleDelete = (clubId: Id<"clubs">) => {
-    console.log("pressed leave");
     setStartedDelete(true);
     deleteClub({ clubId }).catch(() => {});
     router.push("/(tabs)");
   };
   const handleJoin = (clubId: Id<"clubs">) => {
-    console.log("pressed leave");
     joinClub({ clubId, currentDate: String(dayjs()) }).catch(() => {});
     router.push("/(tabs)");
   };
@@ -92,15 +88,7 @@ export default function clubManagement() {
   const currentDateString = String(dayjs());
   const screenWidth = Dimensions.get("window").width;
   const { clubId, tabIndex } = useLocalSearchParams();
-  useEffect(() => {
-    console.log("🟢 MOUNT");
 
-    return () => {
-      console.log("🔴 UNMOUNT");
-    };
-  }, []);
-
-  console.log("🔵 RENDER");
   const clubQueryArgs = useMemo(() => {
     if (!clubId) return "skip";
 
@@ -109,14 +97,19 @@ export default function clubManagement() {
       deleting: startedDelete,
     };
   }, [clubId, startedDelete]);
-  const club = useQuery(api.clubs.getClubData, clubQueryArgs);
+  const club = useQuery(
+    api.clubs.getClubData,
+    clubQueryArgs === "skip"
+      ? "skip"
+      : { ...clubQueryArgs, includeTryouts: false },
+  );
   const notInClub =
     isHeadAdmin(currentUser?.userData.role) &&
     !club?.advisors?.includes(currentUser.userData._id);
   const [isAdmin, setIsAdmin] = useState<boolean>(
     currentUser?.userData._id
       ? (club?.advisors ?? []).includes(currentUser?.userData._id)
-      : false
+      : false,
   );
   useEffect(() => {
     if (currentUser?.userData._id && club?.advisors) {
@@ -137,7 +130,7 @@ export default function clubManagement() {
   const validAnnouncements = useMemo(() => {
     return (club?.announcementList ?? []).filter(
       (announcement): announcement is Doc<"announcements"> =>
-        announcement !== null
+        announcement !== null,
     );
   }, [club?.announcementList]);
 
@@ -147,16 +140,10 @@ export default function clubManagement() {
     }
     return validAnnouncements;
   }, [validAnnouncements]);
-  const eventIds = eventList
-    ? eventList
-        .filter((event): event is NonNullable<typeof event> => event != null)
-        .map((event) => event._id)
-    : [];
-
   const eventDaySet = new Set(
     eventList
       ? eventList.map((event) => dayjs(event?.dateNumber).format("YYYY-MM-DD"))
-      : []
+      : [],
   );
 
   const WebEventPanel = () => (
@@ -225,10 +212,10 @@ export default function clubManagement() {
   const [modalVisable, setModalVisable] = useState(false);
   const [eventSelected, setEventSelected] = useState(true);
   const [bottomSheetType, setBottomSheetType] = useState<number | undefined>(
-    undefined
+    undefined,
   ); // 0=Event, 1 = Announcement, 2 = editEvent, 3 = editAnnouncement, 4 = userInfo, 5 = leadership roles, 6 = announcements
   const [editEvent, setEditEvent] = useState<Id<"events"> | undefined>(
-    undefined
+    undefined,
   );
   const [eventIcon] = useState(new Animated.Value(40));
   const [announcementIcon] = useState(new Animated.Value(40));
@@ -266,7 +253,6 @@ export default function clubManagement() {
   const [createScreenUp, setCreateScreenUp] = useState(false);
   const toggleCreateScreen = () => {
     setCreateScreenUp(!createScreenUp);
-    console.log("createScreen ", createScreenUp);
   };
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -317,11 +303,15 @@ export default function clubManagement() {
     if (index === -1) setPressedDay(undefined);
   }, []);
 
-  const openSheet = useCallback(() => {
-    if (!isWeb() && bottomSheetType !== 2) {
-      bottomSheetRef.current?.expand();
-    } else setModalOpen(true);
-  }, [bottomSheetType]);
+  const openSheet = useCallback(
+    (type?: number) => {
+      const resolvedType = type ?? bottomSheetType;
+      if (!isWeb() && resolvedType !== 2) {
+        bottomSheetRef.current?.expand();
+      } else setModalOpen(true);
+    },
+    [bottomSheetType],
+  );
   const closeSheet = useCallback(() => {
     if (!isWeb() && bottomSheetType === 2) {
       bottomSheetRef.current?.close();
@@ -338,7 +328,7 @@ export default function clubManagement() {
   const [selectedDay, setSelectedDay] = useState(dayjs());
 
   const selectedEvents = club?.eventList.filter((event) =>
-    dayjs(event?.dateNumber).isSame(selectedDay, "day")
+    dayjs(event?.dateNumber).isSame(selectedDay, "day"),
   );
   const handleDayPress = (day: Dayjs) => {
     if (pressedDay?.isSame(day, "day")) {
@@ -374,7 +364,7 @@ export default function clubManagement() {
     .filter((e) => e.eventType === "Meeting")
     .filter((e) => dayjs(e.dateNumber).isAfter(dayjs()));
   const sortedNonMeetings = sortedEvents.filter(
-    (e) => e.eventType !== "Meeting"
+    (e) => e.eventType !== "Meeting",
   );
 
   const [pressedDay, setPressedDay] = useState<Dayjs | undefined>(undefined);
@@ -630,7 +620,7 @@ export default function clubManagement() {
           (u) =>
             u &&
             !club?.pendingMembers?.includes(u.user) &&
-            !club?.advisors?.includes(u?.userId)
+            !club?.advisors?.includes(u?.userId),
         )
         .map((m) => m.user)
         .sort((a, b) => {
@@ -781,14 +771,12 @@ export default function clubManagement() {
     });
   };
   const handleEditEvent = (event: Doc<"events">) => {
-    console.log("yo");
     setBottomSheetType(2);
     setEditEvent(event._id);
-    openSheet();
+    openSheet(2);
   };
   const handleEditRoles = () => {
     setBottomSheetType(5);
-
     openSheet();
   };
   const handleAssignOfficers = () => {
@@ -808,11 +796,11 @@ export default function clubManagement() {
   const modalTitle = () => {
     switch (bottomSheetType) {
       case 0:
-        return "Create Club";
+        return "Create Event";
       case 1:
         return "Create Announcement";
       case 2:
-        return "Create Event";
+        return "Edit Event";
       case 5:
         return "Manage Leadership Roles";
       case 7:
@@ -834,26 +822,22 @@ export default function clubManagement() {
           ]}
         >
           {bottomSheetType === 0 ? (
-            <CreateEvent
-              inputClub={clubId as Id<"clubs">}
-              back={toggleCreateScreen}
-            />
+            <CreateEvent inputClub={clubId as Id<"clubs">} back={closeSheet} />
           ) : bottomSheetType === 1 ? (
             <CreateAnnouncement
               inputClub={clubId as Id<"clubs">}
+              inputClubEvents={club?.eventList}
               trigger={0}
-              back={toggleCreateScreen}
+              back={closeSheet}
             />
           ) : bottomSheetType === 2 && editEvent ? (
-            <EditEvent inputEvent={editEvent} back={toggleCreateScreen} />
+            <EditEvent inputEvent={editEvent} back={closeSheet} />
           ) : bottomSheetType === 5 && club?._id ? (
-            <KeyboardAvoidingView>
-              <LeadershipScreen
-                previousRoles={club?.officerRoles}
-                club={club?._id}
-                close={closeSheet}
-              />
-            </KeyboardAvoidingView>
+            <LeadershipScreen
+              previousRoles={club?.officerRoles}
+              club={club?._id}
+              close={closeSheet}
+            />
           ) : bottomSheetType === 7 && club?._id ? (
             <AssignOfficersScreen
               allMembers={
@@ -929,10 +913,24 @@ export default function clubManagement() {
             onDelete={handleDeleteEvent}
             inCalendar={true}
             inCreation={false}
+
+            onEdit={handleEditEvent}
+
+            onCancel={handleCancelEvent}
           />
           {(eventList?.length == 0 ||
             dayjs(lastEvent.dateNumber).isBefore(currentDate, "day")) && (
-            <Text style={styles.infoTitle}>No Upcoming Events!</Text>
+            <Text
+              style={{
+                color: COLORS.textPrimary,
+                fontSize: 24,
+                alignItems: "center",
+                textAlign: "center",
+                marginTop: 20,
+              }}
+            >
+              No Upcoming Events!
+            </Text>
           )}
         </View>
       ) : (
@@ -970,7 +968,7 @@ export default function clubManagement() {
       })
       .map((announcement) => {
         const matchingEvent = (club?.eventList ?? []).find(
-          (event) => event?._id === announcement.event
+          (event) => event?._id === announcement.event,
         );
 
         return {
@@ -1089,68 +1087,72 @@ export default function clubManagement() {
             ]}
           />
 
-          <Text style={styles.infoText}>
-            Status:{" "}
-            <Text
-              style={{ color: status ? COLORS.publicGreen : COLORS.privateRed }}
-            >
-              {status ? "Public" : "Private"}
-            </Text>
-            ,{" "}
-            <Text style={{ color: restrictedColor }}>
-              {restrictedStatus +
-                (club?.restricted
-                  ? " - " +
-                    (club?.restrictedType === 0
-                      ? "Application"
-                      : club?.restrictedType === 1
-                        ? "Tryout"
-                        : "Prerequisite")
-                  : "")}
-            </Text>
-          </Text>
-
-          <Pressable
-            onPress={
-              status
-                ? () => {
-                    setStatus(false);
-                    setHasChanges(true);
-                  }
-                : () => {
-                    setStatus(true);
-                    setHasChanges(true);
-                  }
-            }
-          >
-            <View style={{ marginLeft: 20 }}>
-              <View style={styles.restrictedContainer}>
-                <View style={styles.lockContainer}>
-                  <MaterialIcons
-                    name={status ? "public" : "public-off"}
-                    style={{
-                      color: !status ? COLORS.privateRed : COLORS.publicGreen,
-                    }}
-                    size={28}
-                  />
-                </View>
-
-                <Text style={styles.restrictedText}>
-                  {status
-                    ? "Users can currently" +
-                      (club?.restricted ? " apply to join " : " join ") +
-                      club?.name
-                    : "Users can not currently" +
-                      (club?.restricted ? " apply to join " : " join ") +
-                      club?.name}
-                </Text>
-              </View>
-            </View>
-          </Pressable>
-          <View style={{ height: 40 }} />
           {canEditClub && (
+            <Text style={styles.infoText}>
+              Status:{" "}
+              <Text
+                style={{
+                  color: status ? COLORS.publicGreen : COLORS.privateRed,
+                }}
+              >
+                {status ? "Public" : "Private"}
+              </Text>
+              ,{" "}
+              <Text style={{ color: restrictedColor }}>
+                {restrictedStatus +
+                  (club?.restricted
+                    ? " - " +
+                      (club?.restrictedType === 0
+                        ? "Application"
+                        : club?.restrictedType === 1
+                          ? "Tryout"
+                          : "Prerequisite")
+                    : "")}
+              </Text>
+            </Text>
+          )}
+          {canEditClub && (
+            <Pressable
+              onPress={
+                status
+                  ? () => {
+                      setStatus(false);
+                      setHasChanges(true);
+                    }
+                  : () => {
+                      setStatus(true);
+                      setHasChanges(true);
+                    }
+              }
+            >
+              <View style={{ marginLeft: 20 }}>
+                <View style={styles.restrictedContainer}>
+                  <View style={styles.lockContainer}>
+                    <MaterialIcons
+                      name={status ? "public" : "public-off"}
+                      style={{
+                        color: !status ? COLORS.privateRed : COLORS.publicGreen,
+                      }}
+                      size={28}
+                    />
+                  </View>
+
+                  <Text style={styles.restrictedText}>
+                    {status
+                      ? "Users can currently" +
+                        (club?.restricted ? " apply to join " : " join ") +
+                        club?.name
+                      : "Users can not currently" +
+                        (club?.restricted ? " apply to join " : " join ") +
+                        club?.name}
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+          )}
+          <View style={{ height: 40 }} />
+          {!!canEditClub && (
             <>
-              {" "}
               <SettingsButton
                 title="Edit Club Info"
                 onPress={handleEditClub}
@@ -1194,7 +1196,7 @@ export default function clubManagement() {
               </SettingsButton>
             </>
           )}
-          <View style={{ justifyContent: "flex-start" }}>
+          <View style={{ justifyContent: "flex-end" }}>
             {isStudent(currentUser?.userData.role) ? (
               <GradientButton
                 onPress={
@@ -1206,9 +1208,7 @@ export default function clubManagement() {
                             club?.advisors &&
                             club?.advisors?.length > 1))
                       ? () => handleLeave(club?._id)
-                      : () => {
-                          console.log("Leave Failed");
-                        }
+                      : () => {}
                 }
                 title={notInClub ? "Join Club" : "Leave Club"}
                 restricted={
@@ -1229,11 +1229,9 @@ export default function clubManagement() {
                             club?.advisors &&
                             club?.advisors?.length > 1))
                       ? () => handleLeave(club?._id)
-                      : () => {
-                          console.log("Leave Failed");
-                        },
+                      : () => {},
                 ]}
-                buttonWidth={500}
+                buttonWidth={isWeb() ? 500 : 150}
               />
             )}
             {(!club?.advisors || club?.advisors?.length <= 1) && isAdmin && (
@@ -1727,15 +1725,18 @@ export default function clubManagement() {
                         inClub={true}
                         onEvent={true}
                         onPress={
-                          event
-                            ? () => handleEditEvent(event)
-                            : () => {
-                                console.log("yooo");
-                              }
+                          event ? () => handleEditEvent(event) : () => {}
                         }
                         canDelete={isAdmin}
                         onDelete={
                           event ? () => handleDeleteEvent(event) : undefined
+                        }
+                        onEdit={
+                          event ? () => handleEditEvent(event) : undefined
+                        }
+
+                        onCancel={
+                          event ? () => handleCancelEvent(event) : undefined
                         }
                       />
                     ))}
@@ -1871,7 +1872,7 @@ const webStyles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontFamily: "PoppinsBold",
     fontSize: 24,
-    width: 600,
+    width: 400,
   },
   topNavTabs: {
     flex: 1,
@@ -1905,7 +1906,7 @@ const webStyles = StyleSheet.create({
     borderRadius: 8,
     minWidth: 80,
     justifyContent: "flex-end",
-    width: 600,
+    width: 400,
   },
   topNavHomeLabel: {
     color: COLORS.textSecondary,

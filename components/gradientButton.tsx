@@ -1,7 +1,14 @@
+import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  DimensionValue,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 
 type defProps = {
@@ -24,8 +31,8 @@ type sizeProps = {
 type pairProps = {
   onPress: (() => void)[];
   buttonTitles: string[];
-  disabled?: boolean;
-  buttonWidth: number;
+  disabledProp?: boolean[];
+  buttonWidth: DimensionValue;
   fixSpacing?: boolean;
   buttonTypes: number[];
 };
@@ -102,6 +109,7 @@ export function LargeMonochromeButton({
   title,
   disabled = false,
   restricted,
+  fixSpacing,
 }: defProps) {
   return (
     <View style={{ width: "75%" }}>
@@ -125,7 +133,7 @@ export function LargeMonochromeButton({
           <Text style={styles.text}>{title}</Text>
         </Pressable>
       </View>
-      <View style={{ paddingBottom: 60 }} />
+      {!fixSpacing && <View style={{ paddingBottom: 60 }} />}
     </View>
   );
 }
@@ -172,11 +180,17 @@ export function SizeGradientButton({
 export function ButtonPair({
   buttonTitles,
   onPress,
-  disabled = false,
+  disabledProp = [],
   fixSpacing,
   buttonWidth,
   buttonTypes, //0=gradient, 1=monochrome, 2=red
 }: pairProps) {
+  let disabled = disabledProp;
+  for (let i = 0; i < buttonTitles.length; i++) {
+    if (disabled[i] === undefined) {
+      disabled[i] = false;
+    }
+  }
   return (
     <View
       style={{
@@ -191,12 +205,17 @@ export function ButtonPair({
         horizontal
         renderItem={(item) => {
           return (
-            <View style={{ width: buttonWidth, marginHorizontal: 20 }}>
+            <View
+              style={{
+                width: buttonWidth,
+                marginHorizontal: isWeb() ? 20 : 10,
+              }}
+            >
               {buttonTypes[item.index] !== 0 ? (
                 <View
                   style={[
                     styles.gradientBorder,
-                    disabled && styles.disabledBorder,
+                    (disabled?.[item.index] ?? false) && styles.disabledBorder,
                     buttonTypes[item.index] === 1 && {
                       backgroundColor: COLORS.textSecondary,
                     },
@@ -206,12 +225,16 @@ export function ButtonPair({
                   ]}
                 >
                   <Pressable
-                    onPress={onPress[item.index]}
-                    disabled={disabled}
+                    onPress={
+                      !(disabled?.[item.index] ?? false)
+                        ? onPress[item.index]
+                        : undefined
+                    }
+                    disabled={disabled?.[item.index]}
                     style={({ pressed }) => [
                       styles.button,
                       pressed && styles.pressed,
-                      disabled && styles.disabled,
+                      disabled?.[item.index] && styles.disabled,
                       buttonTypes[item.index] === 2 && {
                         backgroundColor: COLORS.deleteRed,
                       },
@@ -225,7 +248,7 @@ export function ButtonPair({
                       }}
                     >
                       {buttonTypes[item.index] === 2 && (
-                        <View style={{ position: "absolute", left: -30 }}>
+                        <View style={{ right: 5 }}>
                           <FontAwesome
                             name="trash-o"
                             size={24}
@@ -244,16 +267,20 @@ export function ButtonPair({
                   end={{ x: 1, y: 0 }}
                   style={[
                     styles.gradientBorder,
-                    disabled && styles.disabledBorder,
+                    (disabled?.[item.index] ?? false) && styles.disabledBorder,
                   ]}
                 >
                   <Pressable
-                    onPress={onPress[item.index]}
-                    disabled={disabled}
+                    onPress={
+                      (disabled?.[item.index] ?? false)
+                        ? onPress[item.index]
+                        : undefined
+                    }
+                    disabled={disabled?.[item.index]}
                     style={({ pressed }) => [
                       styles.button,
                       pressed && styles.pressed,
-                      disabled && styles.disabled,
+                      disabled?.[item.index] && styles.disabled,
                     ]}
                   >
                     <Text style={styles.text}>{item.item}</Text>
@@ -264,6 +291,44 @@ export function ButtonPair({
           );
         }}
       />
+    </View>
+  );
+}
+export function DeleteButton({
+  onPress,
+  title,
+  disabled = false,
+  restricted,
+  fixSpacing,
+}: defProps) {
+  return (
+    <View style={{}}>
+      <View
+        style={[
+          styles.gradientBorder,
+          (disabled ?? false) && styles.disabledBorder,
+
+          {
+            borderColor: "red",
+          },
+        ]}
+      >
+        <Pressable
+          onPress={!(disabled ?? false) ? onPress : undefined}
+          disabled={disabled ?? false}
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.pressed,
+            disabled && styles.disabled,
+            {
+              backgroundColor: COLORS.deleteRed,
+            },
+          ]}
+        >
+          <Text style={styles.text}>{title}</Text>
+        </Pressable>
+      </View>
+      {!fixSpacing && <View style={{ paddingBottom: 60 }} />}
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import { COLORS } from "@/constants/theme";
 import { Doc } from "@/convex/_generated/dataModel";
-import { useClubData } from "@/hooks/useClubData";
+import { useClubSummary } from "@/hooks/useClubData";
 
 import { Entypo, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import dayjs from "dayjs";
@@ -42,8 +42,8 @@ export default function ClubCard({
   child,
   childrenNames = [],
 }: props) {
-  const events = (useClubData(club._id)?.eventList ?? []).filter(
-    (e): e is Doc<"events"> => !!e && !!e.startTime
+  const events = (useClubSummary(club._id)?.eventList ?? []).filter(
+    (e): e is Doc<"events"> => !!e && !!e.startTime,
   );
 
   const sortedEvents = [...events].sort((a, b) => {

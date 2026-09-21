@@ -240,7 +240,10 @@ export const styles = StyleSheet.create({
   pressable: {
     backgroundColor: COLORS.publicGreen,
     paddingVertical: 14,
+    marginTop: 10,
     alignItems: "center",
+    zIndex: 100,
+    borderRadius: 12,
   },
   saveButtonText: {
     color: COLORS.white,

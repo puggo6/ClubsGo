@@ -432,7 +432,7 @@ export function SmallMemberCard({ userPFP, name }: schoolProps) {
   return (
     <View style={styles.container}>
       <View style={[styles.contentContainer]}>
-        {imageUrl && (
+        {!!imageUrl && (
           <Image source={{ uri: imageUrl }} style={styles.userAvatar} />
         )}
 

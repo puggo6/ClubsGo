@@ -22,7 +22,7 @@ export default function SchoolSetting({
         flexDirection: "row",
         width: "100%",
         borderRadius: 14,
-        paddingVertical: 15,
+        paddingTop: 15,
         paddingHorizontal: 32,
         marginBottom: 10,
         opacity: disabled ? 0.55 : 1,
@@ -40,7 +40,7 @@ export default function SchoolSetting({
           style={{
             color: COLORS.textPrimary,
             fontSize: 15,
-            fontWeight: "600",
+            fontFamily: "InterSemiBold",
             marginBottom: description ? 4 : 0,
           }}
         >
@@ -54,6 +54,7 @@ export default function SchoolSetting({
               color: COLORS.textSecondary,
               fontSize: 13,
               lineHeight: 18,
+              fontFamily: "InterRegular",
             }}
           >
             {description}

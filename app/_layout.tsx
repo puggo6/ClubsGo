@@ -2,6 +2,8 @@ import { toastConfig } from "@/components/globalToast";
 import { COLORS } from "@/constants/theme";
 import ClerkAndConvexProvider from "@/providers/ClerkAndConvexProvider";
 import { useFonts } from "expo-font";
+import * as SystemUI from "expo-system-ui";
+import { useEffect } from "react";
 import { LogBox, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -13,6 +15,10 @@ import InitialLayout from "../components/initialLayout";
 
 export default function RootLayout() {
   LogBox.ignoreAllLogs(true);
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync("#000000");
+  }, []);
+
   const [fontsLoaded] = useFonts({
     InterLight: require("../assets/fonts/Inter_18pt-Light.ttf"),
     InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
@@ -52,9 +58,14 @@ export default function RootLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
-      <GestureHandlerRootView>
+      <GestureHandlerRootView
+        style={{ flex: 1, backgroundColor: COLORS.background }}
+      >
         <ClerkAndConvexProvider>
-          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <SafeAreaProvider
+            initialMetrics={initialWindowMetrics}
+            style={{ flex: 1, backgroundColor: COLORS.background }}
+          >
             <InitialLayout />
             <Toast config={toastConfig} />
           </SafeAreaProvider>

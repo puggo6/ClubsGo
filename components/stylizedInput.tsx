@@ -1,5 +1,6 @@
 import { COLORS } from "@/constants/theme";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import React, { useState } from "react";
 import {
   DimensionValue,
@@ -21,6 +22,7 @@ type props = {
   filterPress?: () => void;
   wordCapitalize?: boolean;
   width?: DimensionValue;
+  bottomSheet?: boolean;
 };
 
 type containerProps = {
@@ -44,28 +46,49 @@ export default function StylizedInput({
   capitalize = false,
   wordCapitalize = false,
   width,
+  bottomSheet,
 }: props) {
   const [inputHeight, setInputHeight] = useState(40);
   return (
     <View style={[styles.container, width ? { width: width } : {}]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <TextInput
-        scrollEnabled={false}
-        style={[
-          styles.input,
-          dark ? { backgroundColor: COLORS.background } : null,
-          { textAlignVertical: "top" },
-        ]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#888"
-        multiline
-        numberOfLines={1}
-        autoCapitalize={
-          capitalize ? "characters" : wordCapitalize ? "words" : "sentences"
-        }
-      />
+      {bottomSheet ? (
+        <BottomSheetTextInput
+          scrollEnabled={false}
+          style={[
+            styles.input,
+            dark ? { backgroundColor: COLORS.background } : null,
+            { textAlignVertical: "top" },
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#888"
+          multiline
+          numberOfLines={1}
+          autoCapitalize={
+            capitalize ? "characters" : wordCapitalize ? "words" : "sentences"
+          }
+        />
+      ) : (
+        <TextInput
+          scrollEnabled={false}
+          style={[
+            styles.input,
+            dark ? { backgroundColor: COLORS.background } : null,
+            { textAlignVertical: "top" },
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#888"
+          multiline
+          numberOfLines={1}
+          autoCapitalize={
+            capitalize ? "characters" : wordCapitalize ? "words" : "sentences"
+          }
+        />
+      )}
     </View>
   );
 }

@@ -12,20 +12,20 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useState } from "react";
 import {
-  Keyboard,
-  LayoutChangeEvent,
-  Platform,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Keyboard,
+    LayoutChangeEvent,
+    Platform,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import EventCard from "./eventCard";
 import { EventListMap } from "./eventListView";
@@ -34,12 +34,14 @@ import { LargeStylizedInput } from "./stylizedInput";
 
 type props = {
   inputClub?: Id<"clubs">;
+  inputClubEvents?: (Doc<"events"> | null)[];
   trigger: number;
   back: () => void;
 };
 
 export default function CreateAnnouncement({
   inputClub,
+  inputClubEvents,
   trigger,
   back,
 }: props) {
@@ -105,7 +107,10 @@ export default function CreateAnnouncement({
     }
   };
   const browsingEvents = useSharedValue(false);
-  const club = useClubData(inputClub ? inputClub : selectedClub);
+  const club = useClubData(selectedClub);
+  const attachedClubEvents = inputClub
+    ? (inputClubEvents ?? [])
+    : (club?.eventList ?? []);
 
   const showEvents = useSharedValue(false);
 
@@ -510,7 +515,7 @@ export default function CreateAnnouncement({
           </TouchableOpacity>
 
           <EventListMap
-            events={club?.eventList?.filter(
+            events={attachedClubEvents.filter(
               (e): e is Doc<"events"> => e !== null,
             )}
             inClub={true}

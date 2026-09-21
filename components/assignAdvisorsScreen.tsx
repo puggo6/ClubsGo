@@ -25,18 +25,19 @@ export default function AssignAdvisorsScreen({ clubMembers, clubId }: props) {
   const school = user?.userData.school;
   let fullSchool = undefined;
   if (school?._id) {
-    fullSchool = useQuery(api.schools.getSchoolData, { schoolId: school?._id });
+    fullSchool = useQuery(api.schools.getSchoolData, {
+      schoolId: school?._id,
+      includeClubs: false,
+      includeEvents: false,
+    });
   }
-  const allAdmins = [
-    ...(fullSchool?.users.filter((u) => isHeadAdmin(u?.role)) ?? []),
-    ...(fullSchool?.adminList ?? []),
-  ];
+  const allAdmins = [...(fullSchool?.adminList ?? [])];
   const [filteredAdmins, setFilteredAdmins] = useState(
-    allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id))
+    allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id)),
   );
   useEffect(() => {
     setFilteredAdmins(
-      allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id))
+      allAdmins.filter((u) => u?._id && !clubMembers.includes(u?._id)),
     );
   }, [fullSchool]);
 
@@ -57,7 +58,7 @@ export default function AssignAdvisorsScreen({ clubMembers, clubId }: props) {
     return filteredAdmins.filter(
       (u) =>
         searchQuery.length === 0 ||
-        u?.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+        u?.fullName.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [searchQuery, filteredAdmins]);
 

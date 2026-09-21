@@ -19,6 +19,9 @@ type props = {
   childrenIds?: Id<"users">[];
   nameWidth?: number;
   uEvents?: Id<"events">[];
+  onCancel?: (event: Doc<"events">) => void;
+
+  onEdit?: (event: Doc<"events">) => void;
 };
 
 export default function EventListView({
@@ -34,6 +37,8 @@ export default function EventListView({
   childrenIds,
   calendarToggle,
   uEvents,
+  onCancel,
+  onEdit,
 }: props) {
   const currentDate = dayjs();
 
@@ -86,6 +91,8 @@ export default function EventListView({
             childrenIds={childrenIds}
             nameWidth={nameWidth ? nameWidth : undefined}
             uEvents={uEvents}
+            onCancel={onCancel}
+            onEdit={onEdit}
           />
         )}
       />

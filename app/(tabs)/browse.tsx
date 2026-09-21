@@ -1,5 +1,6 @@
 import ClubCard from "@/components/clubCard";
 import Tag, { availableTags } from "@/components/tag";
+import { isHeadAdmin } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { Id } from "@/convex/_generated/dataModel";
 import { useSchoolData } from "@/hooks/useSchoolData";
@@ -56,6 +57,13 @@ export default function Browse() {
     if (!club) return false;
     return !userClubs.includes(club._id) && !requestedClubs?.includes(club._id);
   });
+
+  const routeToManager = (club: Id<"clubs">) => {
+    router.push({
+      pathname: "/club/clubManagement",
+      params: { clubId: club.toString(), tabIndex: 0 },
+    });
+  };
 
   const handleInfo = (club: Id<"clubs">) => {
     router.push({
@@ -122,7 +130,11 @@ export default function Browse() {
 
           return (
             <ClubCard
-              onPress={() => handleInfo(item._id)}
+              onPress={
+                isHeadAdmin(currentUser?.userData.role)
+                  ? () => routeToManager(item._id)
+                  : () => handleInfo(item._id)
+              }
               club={item}
               inBrowse
               childrenNames={children?.filter((c) => c !== undefined)}
