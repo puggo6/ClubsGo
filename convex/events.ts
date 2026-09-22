@@ -156,10 +156,8 @@ export const createGlobEvent = mutation({
     });
     const club = await ctx.db.get(args.club);
     if (!club) {
-      console.log("invalid club");
       return;
     }
-    console.log("here!!!");
 
     await ctx.db.patch(args.club, {
       eventList: [...club.eventList, eventId],

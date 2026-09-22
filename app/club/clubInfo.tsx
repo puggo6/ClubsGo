@@ -58,9 +58,7 @@ export default function clubInfo() {
     try {
       await joinClub({ clubId, currentDate });
       router.push("/(tabs)");
-    } catch (error) {
-      console.log("Error joining club:", error);
-    }
+    } catch (error) {}
   };
 
   const requestClub = useMutation(api.users.requestJoinClub);

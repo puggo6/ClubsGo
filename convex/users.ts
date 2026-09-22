@@ -478,7 +478,6 @@ export const updateUserRole = mutation({
     updateRole: v.string(),
   },
   handler: async (ctx, args) => {
-    console.log("started role update, ", args.userId, "", args.updateRole);
     const user = await ctx.db.get(args.userId);
     if (!user) {
       throw new Error("User not found");
@@ -492,6 +491,15 @@ export const updateUserRole = mutation({
 export const getUserData = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) return null;
+
+    const u = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (!u) return null; // not yet provisioned — not an error
     const currentUser = await getAuthenticatedUser(ctx);
     if (currentUser.clerkId !== args.clerkId) return undefined;
 
@@ -599,7 +607,6 @@ export const setUserRole = mutation({
         args.setRole != "administrator" &&
         args.setRole != "superAdmin")
     ) {
-      console.log("invalid role!");
       return;
     }
     await ctx.db.patch(currentUser._id, {

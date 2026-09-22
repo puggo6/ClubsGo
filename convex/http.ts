@@ -57,7 +57,7 @@ http.route({
         public_metadata,
       } = evt.data;
 
-      const email = email_addresses[0].email_address;
+      const email = email_addresses[0]?.email_address ?? "";
       const name = `${first_name || ""} ${last_name || ""}`.trim();
       const role =
         public_metadata?.role === "administratror" ||
@@ -78,7 +78,6 @@ http.route({
           numClubs: 0,
         });
       } catch (error) {
-        console.log("error creating user: ", error);
         return new Response("error creating user", { status: 500 });
       }
     }

@@ -39,7 +39,6 @@ export const createSchool = mutation({
       approvedAdmin: true,
     });
 
-    console.log("before return");
     return schoolId;
   },
 });
@@ -152,8 +151,6 @@ export const cleanClubListOther = mutation({
 
 export const removeDeletedUsersFromSchools = mutation({
   handler: async (ctx) => {
-    console.log("ran remove");
-
     const currentUser = await getAuthenticatedUser(ctx);
     if (!currentUser.school) throw new Error("School not found");
     const school = await ctx.db.get(currentUser.school);
@@ -168,7 +165,6 @@ export const removeDeletedUsersFromSchools = mutation({
     );
 
     if (filteredUsers.length !== originalUsers.length) {
-      console.log("removed triggered");
       await ctx.db.patch(school._id, {
         userList: filteredUsers,
       });
