@@ -494,14 +494,12 @@ export const getUserData = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || identity.subject !== args.clerkId) return null;
 
-    const u = await ctx.db
+    const currentUser = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .first();
 
-    if (!u) return null; // not yet provisioned — not an error
-    const currentUser = await getAuthenticatedUser(ctx);
-    if (currentUser.clerkId !== args.clerkId) return undefined;
+    if (!currentUser) return null; // not yet provisioned — not an error
 
     const school = currentUser.school
       ? await ctx.db.get(currentUser.school)
@@ -537,6 +535,7 @@ export const getUserData = query({
     const appParent = currentUser.approvedParents
       ? await Promise.all(currentUser.approvedParents.map((c) => ctx.db.get(c)))
       : [];
+
     return {
       ...currentUser,
       school,
