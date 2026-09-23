@@ -373,6 +373,7 @@ export default function index() {
                           })
                           .includes(item._id)
                       }
+                      isAdmin={isAdmin(currentUser.userData.role)}
                     />
                   </View>
                 )}

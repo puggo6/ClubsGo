@@ -26,7 +26,8 @@ type props = {
   joinCard?: boolean;
   onPress: () => void;
   onLeave?: () => void;
-  canManage?: boolean;
+  canManage?: boolean; // refers to if the user can enter the club management page (essentially if they are in the club and not pending)
+  isAdmin?: boolean;
   inBrowse?: boolean;
   child?: boolean;
 
@@ -38,6 +39,7 @@ export default function ClubCard({
   club,
   onPress,
   canManage = true,
+  isAdmin = false,
   inBrowse,
   child,
   childrenNames = [],
@@ -129,7 +131,7 @@ export default function ClubCard({
                   <Text style={styles.webRestrictedText}>Restricted</Text>
                 </View>
               )}
-              {!club.clubPublic && canManage && !inBrowse && (
+              {!club.clubPublic && isAdmin && !inBrowse && (
                 <View style={styles.webPrivateNotice}>
                   <MaterialIcons
                     name={"public-off"}
@@ -248,7 +250,7 @@ export default function ClubCard({
                   {name}
                 </Text>
               </View>
-              {!club.clubPublic && canManage && (
+              {!club.clubPublic && isAdmin && !inBrowse && (
                 <View style={styles.privateNotice}>
                   <Text style={styles.privateNoticeText}>
                     This club is currently private - no students or advisors can
@@ -311,7 +313,7 @@ export default function ClubCard({
             <Ionicons name="lock-closed" color={"#CCCCCC"} size={18} />
           </View>
         )}
-        {!club.clubPublic && canManage && (
+        {!club.clubPublic && isAdmin && (
           <View style={styles.restrictedContainer}>
             <MaterialIcons
               name={"public-off"}

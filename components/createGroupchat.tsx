@@ -1,4 +1,5 @@
 import isWeb from "@/constants/isWeb";
+import { isAdmin, isNonAdmin } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -42,9 +43,12 @@ export default function CreateGroupchat({ onCreate }: props) {
   const students = fullSchool?.users.filter((u) => u?.role === "student");
   const headAdmins = fullSchool?.users.filter((u) => u?.role === "superAdmin");
   const createChat = useMutation(api.groupChats.createChat);
-
+  let adminList = fullSchool?.adminList ?? [];
+  if (isNonAdmin(user?.userData.role)) {
+    adminList = adminList.filter((u) => isAdmin(u?.role)); // students and parents can only message admins
+  }
   const filteredAdmins = useMemo(() => {
-    return [...(fullSchool?.adminList ?? [])].filter((u) => {
+    return [...(adminList ?? [])].filter((u) => {
       const matchesSearch =
         searchQuery.length === 0 ||
         u?.fullName.toLowerCase().includes(searchQuery.toLowerCase());
