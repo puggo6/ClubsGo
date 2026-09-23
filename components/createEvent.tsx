@@ -8,21 +8,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import React, { useEffect, useState } from "react";
 import {
-    Keyboard,
-    LayoutChangeEvent,
-    Platform,
-    Pressable,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Keyboard,
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { Switch } from "react-native-gesture-handler";
 import { DatePickerModal, TimePickerModal } from "react-native-paper-dates";
 import Animated, {
-    useAnimatedStyle,
-    withTiming,
+  useAnimatedStyle,
+  withTiming,
 } from "react-native-reanimated";
 import EventTag, { availableEventTags } from "./eventTag";
 import { SizeGradientButton } from "./gradientButton";
@@ -42,7 +42,7 @@ type editProps = {
 export default function CreateEvent({ inputClub, back, error }: props) {
   const [startedCreate, setStartedCreate] = useState(false);
   const [local, setLocal] = useState(true); // !local would indicate a global event (local events are club-scoped, global events are school-scoped)
-  console.log("inCreate");
+
   const [eventTitle, setEventTitle] = useState("");
   const currentUser = useUserData();
   const currentSchool = useQuery(
@@ -86,7 +86,6 @@ export default function CreateEvent({ inputClub, back, error }: props) {
     if (global === 1 && !globalEventsEnabled) return;
     if (global == 1) setLocal(false);
     else setLocal(true);
-    console.log("local: ", local);
   };
   const createNewEvent = useMutation(api.events.createEvent);
   const createGlobalEvent = useMutation(api.events.createGlobEvent);
@@ -96,7 +95,6 @@ export default function CreateEvent({ inputClub, back, error }: props) {
     const resolvedClubId = inputClub ?? selectedClub;
     const trimmedTitle = eventTitle.trim();
 
-    console.log("started create event ", eventDate, trimmedTitle, eventType);
     if (
       !eventDate ||
       trimmedTitle.length === 0 ||
@@ -114,24 +112,7 @@ export default function CreateEvent({ inputClub, back, error }: props) {
       eventLocation.length > 0 ? eventLocation : undefined;
     const correctDate = handleEventDate(String(eventDate));
     const numDate = eventDate.toISOString();
-    console.log(
-      "before event create: ",
-      correctStartTime,
-      " ",
-      correctEndTime,
-      " ",
-      correctDate,
-      " ",
-      correctLocation,
-      " ",
-      numDate,
-      " ",
-      eventTitle,
-      " ",
-      eventType,
-      " ",
-      selectedClub,
-    );
+
     if (dateArray && local && resolvedClubId) {
       for (let i = 0; i < dateArray.length; i++) {
         const date = dateArray[i];
@@ -148,7 +129,6 @@ export default function CreateEvent({ inputClub, back, error }: props) {
           eventType: eventType,
         });
       }
-      console.log("1 - local multi event");
     } else if (dateArray) {
       for (let i = 0; i < dateArray.length; i++) {
         const date = dateArray[i];
@@ -165,7 +145,6 @@ export default function CreateEvent({ inputClub, back, error }: props) {
           club: resolvedClubId,
         });
       }
-      console.log("2 - glob multi event");
     } else if (local && resolvedClubId) {
       await createNewEvent({
         clubId: resolvedClubId,
@@ -178,7 +157,6 @@ export default function CreateEvent({ inputClub, back, error }: props) {
         dateNum: numDate,
         eventType: eventType,
       });
-      console.log("3 - local single event");
     } else {
       await createGlobalEvent({
         title: trimmedTitle,
@@ -191,7 +169,6 @@ export default function CreateEvent({ inputClub, back, error }: props) {
         eventType: eventType,
         club: resolvedClubId,
       });
-      console.log("4 - glob single event");
     }
     back ? back() : {};
   };
@@ -757,7 +734,6 @@ export function EditEvent({ inputEvent, back }: editProps) {
   const handleLocal = (global: number) => {
     if (global == 1) setLocal(false);
     else setLocal(true);
-    console.log("local: ", local);
   };
   const editEvent = useMutation(api.events.editEvent);
 

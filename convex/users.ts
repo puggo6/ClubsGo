@@ -478,7 +478,6 @@ export const updateUserRole = mutation({
     updateRole: v.string(),
   },
   handler: async (ctx, args) => {
-    console.log("started role update, ", args.userId, "", args.updateRole);
     const user = await ctx.db.get(args.userId);
     if (!user) {
       throw new Error("User not found");
@@ -492,8 +491,15 @@ export const updateUserRole = mutation({
 export const getUserData = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
-    const currentUser = await getAuthenticatedUser(ctx);
-    if (currentUser.clerkId !== args.clerkId) return undefined;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) return null;
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (!currentUser) return null; // not yet provisioned — not an error
 
     const school = currentUser.school
       ? await ctx.db.get(currentUser.school)
@@ -529,6 +535,7 @@ export const getUserData = query({
     const appParent = currentUser.approvedParents
       ? await Promise.all(currentUser.approvedParents.map((c) => ctx.db.get(c)))
       : [];
+
     return {
       ...currentUser,
       school,
@@ -599,7 +606,6 @@ export const setUserRole = mutation({
         args.setRole != "administrator" &&
         args.setRole != "superAdmin")
     ) {
-      console.log("invalid role!");
       return;
     }
     await ctx.db.patch(currentUser._id, {

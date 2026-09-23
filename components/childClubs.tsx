@@ -16,7 +16,7 @@ type props = {
 export default function ChildClubs({ child, onClubPress }: props) {
   const clubs = child.clubs;
   const fullClubs = useQuery(api.clubs.getClubList, { clubList: clubs });
-  console.log(fullClubs);
+
   const goodClubs = fullClubs?.filter((c) => c !== undefined && c !== null);
 
   return (

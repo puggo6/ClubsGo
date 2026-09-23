@@ -6,7 +6,6 @@ import { styles } from "@/styles/create.styles";
 import { useMutation } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
 import { SafeAreaView, Text, TouchableOpacity, View } from "react-native";
 
 export default function ManageSchool() {
@@ -18,9 +17,7 @@ export default function ManageSchool() {
     try {
       await leaveSchool();
       router.push("/(tabs)");
-    } catch (error) {
-      console.log("error leaving school: ", error);
-    }
+    } catch (error) {}
   };
   return (
     <SafeAreaView style={styles.container}>

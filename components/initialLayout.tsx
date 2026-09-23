@@ -11,6 +11,7 @@ export default function InitialLayout() {
   const segments = useSegments();
   const router = useRouter();
   const user = useUserData();
+
   const roleSelected = user ? user.userData.role !== undefined : undefined;
   const bgScreen = () => {
     return (
@@ -39,7 +40,25 @@ export default function InitialLayout() {
     }
   }, [isLoaded, isSignedIn, segments, roleSelected]);
 
+  // Clerk still initializing
   if (!isLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: COLORS.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator color={COLORS.textSecondary} size="large" />
+      </View>
+    );
+  }
+
+  // Signed in with Clerk, but the Convex user row hasn't been created yet
+  // (webhook still in flight) — wait rather than render screens expecting `user`
+  if (isSignedIn && !user) {
     return (
       <View
         style={{

@@ -125,9 +125,7 @@ export default function profile() {
   const handleUserRole = async (role: string) => {
     try {
       await setUserRole({ setRole: role });
-    } catch {
-      console.log("error setting userRole");
-    }
+    } catch {}
   };
 
   const translateY = useRef(new Animated.Value(100)).current;

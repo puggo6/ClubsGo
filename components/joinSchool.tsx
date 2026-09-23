@@ -34,7 +34,6 @@ export default function JoinSchool({ onSwitch }: props) {
     try {
       await userJoinSchool({ joinCode: joinCode });
 
-      console.log("successfully joined school with code ", code);
       router.push("/(tabs)/browse");
       Toast.show({
         type: "success",

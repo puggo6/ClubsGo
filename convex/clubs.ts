@@ -427,7 +427,6 @@ export const getClubData = query({
     includeTryouts: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    console.log("GET CLUB DATAx", args.clubId);
     const club = await ctx.db.get(args.clubId);
     if (args.deleting) return;
     if (!club) return;
@@ -536,7 +535,6 @@ export const getClubContext = query({
 
 export const removeDeletedUsersFromClubs = mutation({
   handler: async (ctx) => {
-    console.log("ran remove");
     // Fetch all current users
     const currentUser = await getAuthenticatedUser(ctx);
     if (!currentUser.school) throw new Error("School not found");
@@ -560,7 +558,6 @@ export const removeDeletedUsersFromClubs = mutation({
 
       // If the list has changed, update the club
       if (filteredMembers.length !== originalMembers.length) {
-        console.log("removed triggered");
         await ctx.db.patch(club._id, {
           members: filteredMembers,
         });
@@ -574,8 +571,6 @@ export const removeDeletedUsersFromClubs = mutation({
 
 export const removeDeletedEventsFromClubs = mutation({
   handler: async (ctx) => {
-    console.log("ran remove");
-
     const currentUser = await getAuthenticatedUser(ctx);
     if (!currentUser.school) throw new Error("School not found");
     const school = await ctx.db.get(currentUser.school);
@@ -595,7 +590,6 @@ export const removeDeletedEventsFromClubs = mutation({
       );
 
       if (filteredEvents.length !== originalEvents.length) {
-        console.log("removed triggered");
         await ctx.db.patch(club._id, {
           eventList: filteredEvents,
         });

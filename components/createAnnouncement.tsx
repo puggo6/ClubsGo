@@ -12,20 +12,20 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useState } from "react";
 import {
-    Keyboard,
-    LayoutChangeEvent,
-    Platform,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Keyboard,
+  LayoutChangeEvent,
+  Platform,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import EventCard from "./eventCard";
 import { EventListMap } from "./eventListView";
@@ -85,7 +85,6 @@ export default function CreateAnnouncement({
   const handleLocal = (global: number) => {
     if (global == 1) setLocal(false);
     else setLocal(true);
-    console.log("local: ", local);
   };
   const dropdownClubs = currentUser?.userData.clubs.map((c) => {
     return { label: c?.name, value: c?._id };
@@ -192,10 +191,8 @@ export default function CreateAnnouncement({
     if (trigger > 0) {
       handleCreate();
     }
-    console.log("effected in announcement");
   }, [trigger]);
   const handleCreate = async () => {
-    console.log("creating announcement");
     let imageStorageId: string | undefined;
 
     if (selectedImage) {
@@ -219,9 +216,9 @@ export default function CreateAnnouncement({
         const imageUrl = await convex.query(api.announcements.getImageUrl, {
           storageId,
         });
-        console.log("Uploaded image storageId:", imageStorageId);
+        // console.log("Uploaded image storageId:", imageStorageId);
       } catch (error) {
-        console.log("error sharing post!");
+        //console.log("error sharing post!");
       }
     }
     const clubId = inputClub ?? selectedClub;
@@ -231,7 +228,6 @@ export default function CreateAnnouncement({
     const event = selectedEvent?._id;
     if (inputClub || selectedClub || !local) {
       if (local) {
-        console.log("create a 1");
         await createNewAnnouncement({
           clubId: (selectedClub ?? inputClub)!,
           message: AnnMessage,
@@ -240,7 +236,6 @@ export default function CreateAnnouncement({
           event: event,
         });
       } else {
-        console.log("create a 2");
         await createGlobalAnnouncement({
           clubId: (selectedClub ?? inputClub)!,
           message: AnnMessage,
