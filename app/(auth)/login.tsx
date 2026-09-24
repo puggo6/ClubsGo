@@ -6,7 +6,14 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -16,8 +23,9 @@ export default function login() {
   const router = useRouter();
   const { user } = useUser(); // must be called inside a component
   const redirectUrl = Linking.createURL("/sso-callback");
-
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const handleGoogleSignIn = async () => {
+    setIsSigningIn(true);
     try {
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: "oauth_google",
@@ -49,9 +57,13 @@ export default function login() {
           onPress={handleGoogleSignIn}
           activeOpacity={0.8}
         >
-          <View style={styles.googleIconContainer}>
-            <Ionicons name="logo-google" size={20} color={COLORS.surface} />
-          </View>
+          {isSigningIn ? (
+            <ActivityIndicator color={COLORS.surface} />
+          ) : (
+            <View style={styles.googleIconContainer}>
+              <Ionicons name="logo-google" size={20} color={COLORS.surface} />
+            </View>
+          )}
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
 

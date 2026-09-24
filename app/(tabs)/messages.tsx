@@ -262,19 +262,19 @@ export default function messages() {
         )}
       </View>
 
-      {isNonAdmin(currentUser.userData.role) ||
+      {(isNonAdmin(currentUser.userData.role) ||
         (isAdmin(currentUser.userData.role) &&
-          currentUser.userData.approvedAdmin && (
-            <TouchableOpacity
-              onPress={handleOpenSheet}
-              activeOpacity={0.5}
-              style={localStyles.fab}
-            >
-              <View style={styles.createButton}>
-                <Feather name="plus" size={40} color="white" />
-              </View>
-            </TouchableOpacity>
-          ))}
+          !!currentUser.userData.approvedAdmin)) && (
+        <TouchableOpacity
+          onPress={handleOpenSheet}
+          activeOpacity={0.5}
+          style={localStyles.fab}
+        >
+          <View style={styles.createButton}>
+            <Feather name="plus" size={40} color="white" />
+          </View>
+        </TouchableOpacity>
+      )}
 
       {!isWeb() ? (
         <BottomSheet

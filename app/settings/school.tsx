@@ -407,7 +407,7 @@ export default function school() {
               />
             )}
 
-            {(school?.adminList?.length ?? 0) < 2 && (
+            {(school?.adminList?.length ?? 0) < 2 && isAdmin && (
               <Text
                 style={{
                   alignSelf: "center",
