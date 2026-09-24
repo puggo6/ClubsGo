@@ -26,6 +26,12 @@ export const createClub = mutation({
     tryoutStartTime: v.optional(v.string()),
     tryoutEndTime: v.optional(v.string()),
     prerequisites: v.optional(v.array(v.string())),
+    gradeRange: v.optional(
+      v.object({
+        minGrade: v.number(),
+        maxGrade: v.number(),
+      }),
+    ),
 
     currentDate: v.string(),
   },
@@ -86,6 +92,7 @@ export const createClub = mutation({
       restricted2: args.prerequisites
         ? { prerequisites: args.prerequisites }
         : undefined,
+      gradeRange: args.gradeRange,
 
       meetingLocation: args.location,
       meetingDayTime: args.meetingDayTime,
@@ -227,6 +234,12 @@ export const updateClubInfo = mutation({
     tryoutStartTime: v.optional(v.string()),
     tryoutEndTime: v.optional(v.string()),
     prerequisites: v.optional(v.array(v.string())),
+    gradeRange: v.optional(
+      v.object({
+        minGrade: v.number(),
+        maxGrade: v.number(),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
@@ -272,6 +285,7 @@ export const updateClubInfo = mutation({
       restricted2: args.prerequisites
         ? { prerequisites: args.prerequisites }
         : undefined,
+      gradeRange: args.gradeRange,
 
       meetingLocation: args.location,
       meetingDayTime: args.meetingDayTime,

@@ -62,6 +62,12 @@ export default defineSchema({
         prerequisites: v.array(v.string()),
       }),
     ),
+    gradeRange: v.optional(
+      v.object({
+        minGrade: v.number(),
+        maxGrade: v.number(),
+      }),
+    ),
     restricted3: v.optional(
       v.object({
         applicationDesc: v.string(),

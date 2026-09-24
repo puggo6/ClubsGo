@@ -50,7 +50,12 @@ export default function profile() {
   };
   const handleUpdateInfo = async () => {
     try {
-      await updateInfo({ fullName: newName });
+      await updateInfo({
+        fullName: newName,
+        gradeLevel: isStudent(currentUser?.userData.role)
+          ? grade || undefined
+          : undefined,
+      });
       Toast.show({
         type: "success",
         text1: "Changes Successfully Saved",
