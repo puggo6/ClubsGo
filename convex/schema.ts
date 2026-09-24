@@ -103,6 +103,7 @@ export default defineSchema({
     configurations: v.optional(
       v.object({
         adminsNeedApproval: v.boolean(),
+        membersNeedApproval: v.optional(v.boolean()),
       }),
     ),
   }).index("by_school_and_name", ["school", "name"]),

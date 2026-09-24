@@ -56,7 +56,7 @@ export default function ClubCard({
   });
 
   const name = club.name;
-  const members = club.numMembers;
+  const members = club.members?.length ?? 0;
   const date =
     sortedEvents[0] &&
     sortedEvents[0].eventType === "Meeting" &&

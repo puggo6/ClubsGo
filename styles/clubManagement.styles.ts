@@ -357,4 +357,10 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
+  schoolDiv: {
+    backgroundColor: COLORS.surfaceAlternate,
+    width: "90%",
+    height: 2,
+    marginVertical: 3,
+  },
 });

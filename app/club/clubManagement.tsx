@@ -16,6 +16,7 @@ import EventListView from "@/components/eventListView";
 import GradientButton, { ButtonPair } from "@/components/gradientButton";
 import LeadershipScreen from "@/components/leadershipScreen";
 import MemberCard from "@/components/memberCard";
+import SchoolSetting from "@/components/schoolSetting";
 import SettingsButton from "@/components/settingsButton";
 import UserInfoModal from "@/components/userInfo";
 import WebCalendar from "@/components/webCalendar";
@@ -222,15 +223,28 @@ export default function clubManagement() {
 
   const [status, setStatus] = useState(club?.clubPublic);
   const toggleClubStatus = useMutation(api.clubs.setClubStatus);
+  const handleConfigurationsChange = useMutation(
+    api.clubs.setClubConfigurations,
+  );
 
+  const [adminsNeedApproval, setAdminsNeedApproval] = useState(
+    club?.configurations?.adminsNeedApproval ?? false,
+  );
+  const [membersNeedApproval, setMembersNeedApproval] = useState(
+    club?.configurations?.membersNeedApproval ?? false,
+  );
   const handleSaveSettings = () => {
     if (!club?._id) return;
     setHasChanges(false);
     toggleClubStatus({ clubId: club?._id, set: status ?? false });
+    handleConfigurationsChange({
+      clubId: club?._id,
+      adminsNeedApproval: adminsNeedApproval,
+      membersNeedApproval: membersNeedApproval,
+    });
     Toast.show({
       type: "success",
       text1: "Changes Successfully Saved",
-
       position: "top",
       visibilityTime: 2500,
       topOffset: 50,
@@ -1046,6 +1060,7 @@ export default function clubManagement() {
   const [deleteVisable, setDeleteVisable] = useState(false);
   const translateYSaveButton = useRef(new Animated.Value(200)).current;
   const hasBeenShown = useRef(false);
+
   const [hasChanges, setHasChanges] = useState(false);
   const isMounted = useRef(false);
   useEffect(() => {
@@ -1062,6 +1077,7 @@ export default function clubManagement() {
       stiffness: 150,
     }).start();
   }, [hasChanges]);
+
   const SettingsTab = () => (
     <View
       style={
@@ -1160,18 +1176,24 @@ export default function clubManagement() {
               >
                 <Feather name="edit" size={32} color={COLORS.textSecondary} />
               </SettingsButton>
-              <SettingsButton
-                title="View Info Page"
-                onPress={() => {
-                  router.push({
-                    pathname: "/club/clubInfo",
-                    params: { clubId: club?._id, isBrowsing: "false" },
-                  });
-                }}
-                screenWidth={screenWidth}
-              >
-                <Feather name="info" size={32} color={COLORS.textSecondary} />
-              </SettingsButton>
+            </>
+          )}
+          {(!!canEditClub || (!!isAdmin && !canEditClub)) && (
+            <SettingsButton
+              title="View Info Page"
+              onPress={() => {
+                router.push({
+                  pathname: "/club/clubInfo",
+                  params: { clubId: club?._id, isBrowsing: "false" },
+                });
+              }}
+              screenWidth={screenWidth}
+            >
+              <Feather name="info" size={32} color={COLORS.textSecondary} />
+            </SettingsButton>
+          )}
+          {!!canEditClub && (
+            <>
               <SettingsButton
                 title="Manage Officer Roles"
                 onPress={handleEditRoles}
@@ -1194,6 +1216,58 @@ export default function clubManagement() {
                   color={COLORS.textSecondary}
                 />
               </SettingsButton>
+
+              <Text
+                style={{
+                  fontFamily: "PoppinsSemiBold",
+                  fontSize: 28,
+                  color: COLORS.textPrimary,
+                  alignSelf: "center",
+                  marginHorizontal: 10,
+                }}
+              >
+                Club Configurations
+              </Text>
+              <View
+                style={{
+                  width: "100%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <View style={styles.schoolDiv} />
+              </View>
+
+              {/*<SettingsHeader title="Configurations" />*/}
+              <SchoolSetting
+                title="Admins Need Approval"
+                description="Require admins to be manually approved by other admins before they can manage the club."
+                value={adminsNeedApproval}
+                onValueChange={() => {
+                  setAdminsNeedApproval(!adminsNeedApproval);
+                  setHasChanges(true);
+                }}
+                overrideLabel={
+                  currentUser?.userData?.school?.configurations
+                    ?.adminsNeedApproval !== adminsNeedApproval
+                    ? "Overridden by School Settings"
+                    : undefined
+                }
+              />
+              <SchoolSetting
+                title="Members Need Approval"
+                description={
+                  "Require members to be manually approved before they can join the club" +
+                  (club?.restricted
+                    ? " (enabled by default for restricted clubs)."
+                    : ".")
+                }
+                value={membersNeedApproval}
+                onValueChange={() => {
+                  setMembersNeedApproval(!membersNeedApproval);
+                  setHasChanges(true);
+                }}
+              />
             </>
           )}
           <View style={{ justifyContent: "flex-end" }}>

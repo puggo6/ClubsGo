@@ -250,10 +250,12 @@ export const joinClub = mutation({
     if (!school) return;
     const isStudent = currentUser.role === "student";
     const adminsNeedApproval =
-      school.configurations?.clubAdminsNeedApproval === true &&
+      school.configurations?.clubAdminsNeedApproval === true ||
       club.configurations?.adminsNeedApproval === true;
 
-    const needsApproval = club.restricted || (!isStudent && adminsNeedApproval);
+    const needsApproval =
+      (isStudent && club.configurations?.membersNeedApproval === true) ||
+      (!isStudent && adminsNeedApproval);
 
     if (!needsApproval) {
       if (isStudent) {
