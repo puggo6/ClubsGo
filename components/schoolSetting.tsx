@@ -1,5 +1,14 @@
 import { COLORS } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { Switch, Text, View } from "react-native";
+
+type OverrideInfo = {
+  /** "overridden": this setting's value is forced/ignored because of a parent setting.
+   *  "overrides": this setting, when on, forces a related child setting regardless of its own value. */
+  type: "overridden" | "overrides";
+  /** Short explanation, e.g. "Forced on by school setting" or "Overrides club approval settings" */
+  label: string;
+};
 
 type SchoolSettingProps = {
   title: string;
@@ -7,6 +16,7 @@ type SchoolSettingProps = {
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
+  overrideLabel?: string;
 };
 
 export default function SchoolSetting({
@@ -15,7 +25,10 @@ export default function SchoolSetting({
   value,
   onValueChange,
   disabled = false,
+  overrideLabel,
 }: SchoolSettingProps) {
+  const isOverridden = !!overrideLabel;
+
   return (
     <View
       style={{
@@ -35,17 +48,57 @@ export default function SchoolSetting({
           alignItems: "flex-start",
         }}
       >
-        <Text
-          selectable={false}
+        <View
           style={{
-            color: COLORS.textPrimary,
-            fontSize: 15,
-            fontFamily: "InterSemiBold",
-            marginBottom: description ? 4 : 0,
+            flexDirection: "row",
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: description || overrideLabel ? 4 : 0,
           }}
         >
-          {title}
-        </Text>
+          <Text
+            selectable={false}
+            style={{
+              color: COLORS.textPrimary,
+              fontSize: 15,
+              fontFamily: "InterSemiBold",
+            }}
+          >
+            {title}
+          </Text>
+
+          {overrideLabel && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginLeft: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 20,
+                gap: 4,
+                backgroundColor: isOverridden
+                  ? "rgba(255,255,255,0.08)"
+                  : `${COLORS.primary}22`,
+              }}
+            >
+              <Ionicons
+                name={isOverridden ? "lock-closed" : "arrow-down-circle"}
+                size={11}
+                color={isOverridden ? COLORS.textMuted : COLORS.primary}
+              />
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontFamily: "InterMedium",
+                  color: isOverridden ? COLORS.textMuted : COLORS.primary,
+                }}
+              >
+                {isOverridden ? "Overridden" : "Overrides"}
+              </Text>
+            </View>
+          )}
+        </View>
 
         {description && (
           <Text
@@ -58,6 +111,22 @@ export default function SchoolSetting({
             }}
           >
             {description}
+          </Text>
+        )}
+
+        {overrideLabel && (
+          <Text
+            selectable={false}
+            style={{
+              color: isOverridden ? COLORS.textMuted : COLORS.primary,
+              fontSize: 12,
+              lineHeight: 16,
+              fontFamily: "InterRegular",
+              marginTop: 3,
+              fontStyle: isOverridden ? "italic" : "normal",
+            }}
+          >
+            {overrideLabel}
           </Text>
         )}
       </View>
@@ -74,6 +143,37 @@ export default function SchoolSetting({
           ios_backgroundColor="rgba(255,255,255,0.14)"
         />
       </View>
+    </View>
+  );
+}
+export function SettingsHeader({ title }: { title: string }) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        marginLeft: 20,
+        marginRight: 20,
+        marginTop: 10,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 14,
+          fontFamily: "PoppinsMedium",
+          color: COLORS.textSecondary,
+        }}
+      >
+        {title}
+      </Text>
+      <View
+        style={{
+          flex: 1,
+          height: 1,
+          backgroundColor: COLORS.surfaceLight,
+          marginLeft: 10,
+        }}
+      />
     </View>
   );
 }

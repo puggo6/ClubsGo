@@ -439,7 +439,11 @@ export default function clubInfo() {
             <>
               <SizeGradientButton
                 onPress={() => handelJoin(club._id)}
-                title={club.restricted ? "Request to Join" : "Join"}
+                title={
+                  club.configurations?.membersNeedApproval
+                    ? "Request to Join"
+                    : "Join"
+                }
                 width={8}
                 height={6}
                 restricted={

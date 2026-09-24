@@ -1,6 +1,6 @@
 import DeletionModal from "@/components/deletionModal";
 import { ButtonPair, LargeMonochromeButton } from "@/components/gradientButton";
-import SchoolSetting from "@/components/schoolSetting";
+import SchoolSetting, { SettingsHeader } from "@/components/schoolSetting";
 
 import isWeb from "@/constants/isWeb";
 import { COLORS } from "@/constants/theme";
@@ -113,37 +113,6 @@ export default function school() {
     });
   };
 
-  const SettingsHeader = ({ title }: { title: string }) => {
-    return (
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginLeft: 20,
-          marginRight: 20,
-          marginTop: 10,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 14,
-            fontFamily: "PoppinsMedium",
-            color: COLORS.textSecondary,
-          }}
-        >
-          {title}
-        </Text>
-        <View
-          style={{
-            flex: 1,
-            height: 1,
-            backgroundColor: COLORS.surfaceLight,
-            marginLeft: 10,
-          }}
-        />
-      </View>
-    );
-  };
   return (
     <View style={[{ flex: 1 }]}>
       <ScrollView
@@ -372,7 +341,7 @@ export default function school() {
               />
               <SettingsHeader title="Configurations" />
               <SchoolSetting
-                title=" Toggle Global School Page (Beta)"
+                title="Toggle Global School Page (Beta)"
                 description="Toggle the school page, where global announcements and events are displayed for all users in the school"
                 value={globalSchoolPage}
                 onValueChange={() => {

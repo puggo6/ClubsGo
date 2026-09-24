@@ -64,7 +64,10 @@ export const createClub = mutation({
       eventList: [],
       announcementList: [],
       nextMeeting: undefined,
-      configurations: { adminsNeedApproval: true },
+      configurations: {
+        adminsNeedApproval: true,
+        membersNeedApproval: args.restricted ? true : false,
+      },
       restricted0: args.applicationDesc
         ? {
             applicationDesc: args.applicationDesc,
@@ -765,6 +768,23 @@ export const setClubStatus = mutation({
     await ctx.db.patch(args.clubId, { clubPublic: args.set });
   },
 });
+
+export const setClubConfigurations = mutation({
+  args: {
+    clubId: v.id("clubs"),
+    adminsNeedApproval: v.boolean(),
+    membersNeedApproval: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.clubId, {
+      configurations: {
+        adminsNeedApproval: args.adminsNeedApproval,
+        membersNeedApproval: args.membersNeedApproval,
+      },
+    });
+  },
+});
+
 export const getNextEventDate = query({
   args: { clubId: v.id("clubs") },
   handler: async (ctx, args) => {
