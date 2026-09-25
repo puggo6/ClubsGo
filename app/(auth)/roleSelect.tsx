@@ -1,26 +1,34 @@
 import GradientButton from "@/components/gradientButton";
 import isWeb from "@/constants/isWeb";
+import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/auth.styles";
 import { useMutation } from "convex/react";
+import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import {
-  Image,
-  SafeAreaView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, Pressable, SafeAreaView, Text, View } from "react-native";
 import { toggleRoleSelected } from "./login";
+
+const ROLES: { value: string; label: string }[] = [
+  { value: "student", label: "Student" },
+  { value: "parent", label: "Parent" },
+  { value: "administrator", label: "Admin" },
+  { value: "superAdmin", label: "Head Admin" },
+];
 
 export default function RoleSelect() {
   const [userRole, setUserRole] = useState("student");
+  const [grade, setGrade] = useState<number | undefined>(undefined);
   const currentUser = useUserData();
   const updateUserRole = useMutation(api.users.updateUserRole);
   if (!currentUser) return;
   const handleContinue = async () => {
-    updateUserRole({ userId: currentUser?.userData._id, updateRole: userRole });
+    await updateUserRole({
+      userId: currentUser.userData._id,
+      updateRole: userRole,
+      gradeLevel: userRole === "student" ? grade : undefined,
+    });
     toggleRoleSelected();
   };
   return (
@@ -41,50 +49,76 @@ export default function RoleSelect() {
             To continue, select one of the following roles.
           </Text>
         </View>
-        <View style={{ flexDirection: "column" }}>
-          <View style={styles.roleButtons}>
-            <TouchableOpacity
-              style={[
-                styles.roleButton,
-                userRole === "student" ? {} : { backgroundColor: "#6b7c93" },
-              ]}
-              onPress={() => setUserRole("student")}
-            >
-              <Text style={[styles.roleButtonText]}>Student</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.roleButton,
-                userRole === "parent" ? {} : { backgroundColor: "#6b7c93" },
-              ]}
-              onPress={() => setUserRole("parent")}
-            >
-              <Text style={[styles.roleButtonText]}>Parent</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.roleButtons}>
-            <TouchableOpacity
-              style={[
-                styles.roleButton,
-                userRole === "administrator"
-                  ? {}
-                  : { backgroundColor: "#6b7c93" },
-              ]}
-              onPress={() => setUserRole("administrator")}
-            >
-              <Text style={[styles.roleButtonText]}>Admin</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.roleButton,
-                userRole === "superAdmin" ? {} : { backgroundColor: "#6b7c93" },
-              ]}
-              onPress={() => setUserRole("superAdmin")}
-            >
-              <Text style={[styles.roleButtonText]}>Head Admin</Text>
-            </TouchableOpacity>
-          </View>
+
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 10,
+            justifyContent: "center",
+            marginTop: 10,
+            marginBottom: 15,
+          }}
+        >
+          {ROLES.map((role) => {
+            const selected = userRole === role.value;
+
+            const tile = (
+              <Pressable
+                onPress={() => setUserRole(role.value)}
+                style={({ pressed }) => ({
+                  width: "100%",
+                  minHeight: 52,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 11,
+                  backgroundColor: selected
+                    ? COLORS.surface
+                    : COLORS.surfaceAlternate,
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <Text
+                  selectable={false}
+                  style={{
+                    color: selected ? COLORS.textPrimary : COLORS.textSecondary,
+                    fontSize: 15,
+                    fontFamily: selected ? "InterSemiBold" : "InterRegular",
+                  }}
+                >
+                  {role.label}
+                </Text>
+              </Pressable>
+            );
+
+            return (
+              <View key={role.value} style={{ width: "46%" }}>
+                {selected ? (
+                  <LinearGradient
+                    colors={["#f64f59", "#c471ed", "#12c2e9"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ borderRadius: 12, padding: 2 }}
+                  >
+                    {tile}
+                  </LinearGradient>
+                ) : (
+                  <View
+                    style={{
+                      borderRadius: 12,
+                      padding: 2,
+                      borderWidth: 1,
+                      borderColor: "rgba(255,255,255,0.06)",
+                    }}
+                  >
+                    {tile}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
+
         <Text style={styles.roleDescription}>
           You will be able to
           <Text style={{ fontFamily: "PoppinsBold" }}>
@@ -97,6 +131,7 @@ export default function RoleSelect() {
                   : " create schools and manage school activity"}
           </Text>
         </Text>
+
         <View style={styles.continue}>
           <GradientButton title="Continue" onPress={handleContinue} />
         </View>

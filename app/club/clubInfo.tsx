@@ -157,6 +157,11 @@ export default function clubInfo() {
   );
 
   const restrictedType = club?.restrictedType;
+  const gradeRangeLabel = club?.gradeRange
+    ? club.gradeRange.minGrade === club.gradeRange.maxGrade
+      ? `Grade ${club.gradeRange.minGrade}`
+      : `Grades ${club.gradeRange.minGrade} - ${club.gradeRange.maxGrade}`
+    : undefined;
 
   const openLink = async (url: string) => {
     const isSupported = await Linking.canOpenURL(url);
@@ -263,6 +268,33 @@ export default function clubInfo() {
           </Text>
         </View>
       </View>
+
+      {gradeRangeLabel && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginRight: 10,
+          }}
+        >
+          <View style={styles.infoIconContainer}>
+            <Ionicons
+              name="school-outline"
+              size={32}
+              color={COLORS.textPrimary}
+            />
+          </View>
+          <View style={{ width: "88%" }}>
+            <Text
+              style={styles.infoPageAccent}
+              adjustsFontSizeToFit
+              numberOfLines={1}
+            >
+              {gradeRangeLabel}
+            </Text>
+          </View>
+        </View>
+      )}
 
       <Text style={styles.infoPageText}>{club?.expandedDescription}</Text>
 

@@ -55,11 +55,7 @@ export default function Browse() {
 
   const clubList = fullClubList.filter((club) => {
     if (!club) return false;
-    return (
-      !userClubs.includes(club._id) &&
-      !requestedClubs?.includes(club._id) &&
-      club.clubPublic
-    );
+    return !userClubs.includes(club._id) && !requestedClubs?.includes(club._id);
   });
 
   const routeToManager = (club: Id<"clubs">) => {

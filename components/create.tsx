@@ -40,6 +40,7 @@ import StylizedInput, {
   LargeStylizedInput,
   StylizedContainer,
 } from "./stylizedInput";
+import UnselectButton from "./unselectButton";
 
 const isWeb = Platform.OS === "web";
 
@@ -123,6 +124,12 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
   const [frequency, setFrequency] = useState<number | undefined>(
     fullClub?.meetingFreq ?? undefined,
   );
+  const [minGrade, setMinGrade] = useState<number | undefined>(
+    fullClub?.gradeRange?.minGrade,
+  );
+  const [maxGrade, setMaxGrade] = useState<number | undefined>(
+    fullClub?.gradeRange?.maxGrade,
+  );
 
   const { width } = Dimensions.get("window");
   const toggleExpanded = () => setExpanded(!expanded);
@@ -186,6 +193,11 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     { label: "Monthly", value: 2 },
     { label: "As Needed", value: 3 },
   ];
+  const gradeOptions = [7, 8, 9, 10, 11, 12];
+  const clearGradeRange = () => {
+    setMinGrade(undefined);
+    setMaxGrade(undefined);
+  };
 
   const onLayout = (event: LayoutChangeEvent) => {
     const layoutHeight = event.nativeEvent.layout.height;
@@ -244,6 +256,10 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
         tryoutStartTime: eventStartTime || undefined,
         tryoutEndTime: eventEndTime || undefined,
         prerequisites: isPre || isAP ? prereqs : undefined,
+        gradeRange:
+          minGrade !== undefined && maxGrade !== undefined
+            ? { minGrade, maxGrade }
+            : undefined,
         currentDate,
       });
       await cleanClubs({ schoolId: userSchoolId });
@@ -944,6 +960,127 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
         label="Meeting Date/Time"
         placeholder="EX: Tuesdays @ 3PM"
       />
+      <Text
+        style={{
+          color: "#fff",
+          fontSize: 18,
+          marginBottom: -6,
+          fontFamily: "InterRegular",
+          marginLeft: 8,
+        }}
+      >
+        Grade Range (Optional)
+      </Text>
+      {isWeb ? (
+        <>
+          <View style={webStyles.pickerContainer}>
+            <select
+              value={minGrade ?? ""}
+              onChange={(e) =>
+                setMinGrade(e.target.value ? Number(e.target.value) : undefined)
+              }
+              style={{
+                color: COLORS.textPrimary,
+                backgroundColor: "transparent",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 12px",
+                fontSize: 16,
+                width: "100%",
+                outline: "none",
+              }}
+            >
+              <option
+                value=""
+                style={{ backgroundColor: COLORS.surfaceAlternate }}
+              >
+                No minimum grade
+              </option>
+              {gradeOptions.map((gradeValue) => (
+                <option
+                  key={gradeValue}
+                  label={`Grade ${gradeValue}`}
+                  value={gradeValue}
+                  style={{ backgroundColor: COLORS.surfaceAlternate }}
+                />
+              ))}
+            </select>
+          </View>
+          <View style={webStyles.pickerContainer}>
+            <select
+              value={maxGrade ?? ""}
+              onChange={(e) =>
+                setMaxGrade(e.target.value ? Number(e.target.value) : undefined)
+              }
+              style={{
+                color: COLORS.textPrimary,
+                backgroundColor: "transparent",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 12px",
+                fontSize: 16,
+                width: "100%",
+                outline: "none",
+              }}
+            >
+              <option
+                value=""
+                style={{ backgroundColor: COLORS.surfaceAlternate }}
+              >
+                No maximum grade
+              </option>
+              {gradeOptions.map((gradeValue) => (
+                <option
+                  key={gradeValue}
+                  label={`Grade ${gradeValue}`}
+                  value={gradeValue}
+                  style={{ backgroundColor: COLORS.surfaceAlternate }}
+                />
+              ))}
+            </select>
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={webStyles.pickerContainer}>
+            <Picker
+              selectedValue={minGrade}
+              onValueChange={(value) => setMinGrade(value)}
+              itemStyle={{ color: COLORS.textPrimary }}
+              selectionColor={COLORS.surfaceAlternate}
+            >
+              <Picker.Item label="Minimum grade" value={undefined} />
+              {gradeOptions.map((gradeValue) => (
+                <Picker.Item
+                  key={gradeValue}
+                  label={`Grade ${gradeValue}`}
+                  value={gradeValue}
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={webStyles.pickerContainer}>
+            <Picker
+              selectedValue={maxGrade}
+              onValueChange={(value) => setMaxGrade(value)}
+              itemStyle={{ color: COLORS.textPrimary }}
+              selectionColor={COLORS.surfaceAlternate}
+            >
+              <Picker.Item label="Maximum grade" value={undefined} />
+              {gradeOptions.map((gradeValue) => (
+                <Picker.Item
+                  key={gradeValue}
+                  label={`Grade ${gradeValue}`}
+                  value={gradeValue}
+                />
+              ))}
+            </Picker>
+          </View>
+        </>
+      )}
+
+      <UnselectButton label="Unselect Grade Range" onPress={clearGradeRange} />
       {/* <View
         style={{
           flexDirection: "row",

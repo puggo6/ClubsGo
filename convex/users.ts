@@ -33,7 +33,7 @@ export const createUser = mutation({
 
       role: undefined,
 
-      gradeLevel: undefined,
+      gradeLevel: args.gradeLevel,
       school: undefined,
 
       profilePicture: args.profilePicture,
@@ -49,6 +49,7 @@ export const updateUserProfile = mutation({
   args: {
     username: v.optional(v.string()),
     fullName: v.optional(v.string()),
+    gradeLevel: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
@@ -56,6 +57,7 @@ export const updateUserProfile = mutation({
     await ctx.db.patch(currentUser._id, {
       username: args.username ? args.username : currentUser.username,
       fullName: args.fullName ? args.fullName : currentUser.fullName,
+      gradeLevel: args.gradeLevel,
     });
   },
 });
@@ -478,6 +480,7 @@ export const updateUserRole = mutation({
   args: {
     userId: v.id("users"),
     updateRole: v.string(),
+    gradeLevel: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
@@ -486,6 +489,7 @@ export const updateUserRole = mutation({
     }
     await ctx.db.patch(user._id, {
       role: args.updateRole,
+      gradeLevel: args.gradeLevel,
     });
   },
 });
