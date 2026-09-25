@@ -173,7 +173,7 @@ export default function Browse() {
           end={{ x: 1, y: 0 }}
           style={styles.gradientBar}
         />
-        <View>
+        <View style={{ flex: 1 }}>
           <View
             style={[
               {
