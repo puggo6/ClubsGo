@@ -142,8 +142,12 @@ export default function EventCard({
   if (!event) return <Text>Event not found!</Text>;
   const description = event.description;
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress}>
-      <View style={styles.container}>
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={webCal ? { width: "100%" } : undefined}
+    >
+      <View style={[styles.container, webCal && { width: "100%" }]}>
         <View
           style={[
             styles.colorBar,
@@ -154,7 +158,7 @@ export default function EventCard({
             },
           ]}
         />
-        <View>
+        <View style={webCal ? { flex: 1, minWidth: 0 } : undefined}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Text
               style={[
@@ -194,7 +198,7 @@ export default function EventCard({
             style={{ flexDirection: "row", flexWrap: "wrap", width: "100%" }}
           >
             <Text
-              numberOfLines={isWeb() ? 3 : 1}
+              numberOfLines={webCal ? undefined : isWeb() ? 3 : 1}
               adjustsFontSizeToFit={isWeb() ? false : true}
               style={[
                 styles.eventName,
@@ -318,12 +322,12 @@ export default function EventCard({
         </View>
         <View
           style={{
-            flex: 1,
+            flex: canDelete ? 0 : undefined,
             alignItems: "flex-end",
-            marginRight: 15,
-            marginLeft: 30,
+            marginRight: canDelete ? 15 : 0,
+            marginLeft: canDelete ? 30 : 0,
             justifyContent: "center",
-            width: 40,
+            width: canDelete ? 40 : 0,
           }}
         >
           {canDelete && (

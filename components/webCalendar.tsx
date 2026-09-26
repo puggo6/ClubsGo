@@ -21,8 +21,11 @@ type Props = {
   onEdit?: (event: Doc<"events">) => void;
   onCancel?: (event: Doc<"events">) => void;
   onDelete?: (event: Doc<"events">) => void;
+  onCreateEvent?: () => void;
   removal?: boolean;
   children?: Id<"users">[];
+  createVis?: boolean;
+  onCreatePress?: () => void;
 };
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -35,6 +38,7 @@ export default function WebCalendar({
   canEdit,
   onCancel,
   onDelete,
+  onCreateEvent,
   onEdit,
   removal,
   children,
@@ -76,23 +80,26 @@ export default function WebCalendar({
       <View style={styles.header}>
         <Text style={styles.monthLabel}>{monthLabel()}</Text>
         <View style={styles.headerControls}>
-          <Pressable onPress={goToToday} style={styles.todayButton}>
-            <Text style={styles.todayButtonText}>Today</Text>
-          </Pressable>
-          <Pressable onPress={goToPrevWeek} style={styles.navButton}>
-            <Ionicons
-              name="chevron-back"
-              size={18}
-              color={COLORS.textSecondary}
-            />
-          </Pressable>
-          <Pressable onPress={goToNextWeek} style={styles.navButton}>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={COLORS.textSecondary}
-            />
-          </Pressable>
+          <View style={{ marginHorizontal: 6 }}></View>
+          <View style={styles.weekControls}>
+            <Pressable onPress={goToPrevWeek} style={styles.navButton}>
+              <Ionicons
+                name="chevron-back"
+                size={22}
+                color={COLORS.textSecondary}
+              />
+            </Pressable>
+            <Pressable onPress={goToToday} style={styles.todayButton}>
+              <Text style={styles.todayButtonText}>Today</Text>
+            </Pressable>
+            <Pressable onPress={goToNextWeek} style={styles.navButton}>
+              <Ionicons
+                name="chevron-forward"
+                size={22}
+                color={COLORS.textSecondary}
+              />
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -128,7 +135,7 @@ export default function WebCalendar({
                     const color = getEventTagColor(event.eventType);
 
                     return (
-                      <View style={{ maxWidth: 10 }} key={event._id}>
+                      <View style={{ width: "100%" }} key={event._id}>
                         {/* <Pressable
                         key={event._id}
                         onPress={() => onEventPress?.(event)}
@@ -227,18 +234,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  todayButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
+  weekControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.surfaceAlternate,
-    marginRight: 4,
+  },
+  todayButton: {
+    paddingHorizontal: 12,
+    alignSelf: "stretch",
+    justifyContent: "center",
+
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.surfaceAlternate,
+    borderRightWidth: 2,
+    borderRightColor: COLORS.surfaceAlternate,
   },
   todayButtonText: {
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
     fontFamily: "PoppinsMedium",
-    fontSize: 12,
+    fontSize: 14,
   },
   navButton: {
     width: 30,
@@ -246,9 +265,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.surfaceAlternate,
+    marginVertical: 4,
   },
   grid: {
     flex: 1,

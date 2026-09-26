@@ -1,16 +1,19 @@
 import Calendar from "@/components/calendar";
+import CreateEvent from "@/components/createEvent";
 import EventCard from "@/components/eventCard";
 import EventListView from "@/components/eventListView";
 import WebCalendar from "@/components/webCalendar";
-import { isHeadAdmin, isParent } from "@/constants/roles";
+import { WebCreateModal } from "@/components/webCreateModal";
+import { isAdmin, isParent } from "@/constants/roles";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/calendar.styles";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import BottomSheet, {
   BottomSheetBackgroundProps,
+  BottomSheetScrollView,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "convex/react";
@@ -25,6 +28,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,6 +39,12 @@ const isWeb = Platform.OS === "web";
 export default function calendar() {
   const currentUser = useUserData();
   const role = currentUser?.userData.role;
+  const [showAllEventsOverride, setShowAllEventsOverride] = useState<
+    boolean | undefined
+  >(undefined);
+  const canViewAllEvents =
+    isAdmin(role) && currentUser?.userData.approvedAdmin === true;
+  const showAllEvents = showAllEventsOverride ?? role === "superAdmin";
   let masterClubs = currentUser?.userData.clubs ?? [];
   const insets = useSafeAreaInsets();
 
@@ -43,8 +53,7 @@ export default function calendar() {
       clubList: currentUser?.userData.school?.clubList ?? [],
     }) ?? [];
 
-  if (isHeadAdmin(role) && currentUser?.userData.approvedAdmin)
-    masterClubs = fullSchoolClubs;
+  if (canViewAllEvents && showAllEvents) masterClubs = fullSchoolClubs;
 
   const childrenIds = currentUser?.userData?.approvedChildren
     ?.map((c) => c?._id)
@@ -69,6 +78,13 @@ export default function calendar() {
     }
   } else {
     eventIds = uEventIds;
+  }
+
+  if (canViewAllEvents && showAllEvents) {
+    eventIds = [
+      ...fullSchoolClubs.flatMap((club) => (club ? club.eventList : [])),
+      ...(currentUser?.userData.school?.eventList ?? []),
+    ];
   }
 
   const eventsA = useQuery(api.events.getManyEvents, { eventIds });
@@ -119,11 +135,17 @@ export default function calendar() {
       ? events.map((event) => dayjs(event?.dateNumber).format("YYYY-MM-DD"))
       : [],
   );
-
+  const handleCloseSheet = () => {
+    setCreateVisable(false);
+    if (!isWeb) {
+      bottomSheetRef.current?.close();
+    }
+  };
   const [selectedDay, setSelectedDay] = useState(dayjs());
   const [currentCalDate, setCurrentCalDate] = useState(dayjs());
   const [pressedDay, setPressedDay] = useState<Dayjs | undefined>(undefined);
   const [onCalendar, setOnCalendar] = useState(false);
+  const [createVisable, setCreateVisable] = useState(false);
 
   const selectedEvents = events
     ? events.filter((event) =>
@@ -210,7 +232,78 @@ export default function calendar() {
       </ScrollView>
     </View>
   );
-
+  const EventFilter = () => {
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 8,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 6,
+            padding: 4,
+            borderRadius: 14,
+            backgroundColor: COLORS.surface,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          {[
+            { label: "My Club Events", value: false },
+            { label: "All School Events", value: true },
+          ].map((option) => (
+            <Pressable
+              key={option.label}
+              onPress={() => {
+                setShowAllEventsOverride(option.value);
+                setPressedDay(undefined);
+              }}
+              style={[
+                {
+                  minWidth: 94,
+                  alignItems: "center",
+                  backgroundColor:
+                    showAllEvents === option.value
+                      ? COLORS.background
+                      : "transparent",
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                },
+                showAllEvents === option.value && {
+                  elevation: 4,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.24,
+                  shadowRadius: 4,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color:
+                    showAllEvents === option.value
+                      ? COLORS.textPrimary
+                      : COLORS.textSecondary,
+                  fontFamily:
+                    showAllEvents === option.value
+                      ? "InterSemiBold"
+                      : "InterRegular",
+                }}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    );
+  };
   return (
     <View
       style={[
@@ -239,70 +332,104 @@ export default function calendar() {
       />
 
       {/* view toggle */}
-
-      {!isWeb ? (
-        <View style={{ alignItems: "flex-end", marginRight: 15 }}>
-          <View style={{ flexDirection: "row" }}>
-            <Pressable
-              onPress={() => {
-                setPressedDay(undefined);
-                setOnCalendar(true);
-              }}
-            >
-              <Ionicons
-                name="calendar"
-                color={onCalendar ? COLORS.textPrimary : COLORS.textMuted}
-                size={35}
-                style={{ paddingHorizontal: 10 }}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                if (!isWeb) bottomSheetRef.current?.close();
-                setPressedDay(undefined);
-                setOnCalendar(false);
-              }}
-            >
-              <Ionicons
-                name="list"
-                color={!onCalendar ? COLORS.textPrimary : COLORS.textMuted}
-                size={40}
-              />
-            </Pressable>
+      <View
+        style={{
+          flexDirection: "row",
+          width: "100%",
+          minHeight: 48,
+          alignItems: "center",
+          position: "relative",
+          marginBottom: 8,
+        }}
+      >
+        {canViewAllEvents && (
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              alignItems: "center",
+            }}
+          >
+            <EventFilter />
           </View>
-        </View>
-      ) : (
-        <View style={{ alignItems: "flex-end", marginRight: 15 }}>
-          <View style={{ flexDirection: "row" }}>
-            <Pressable
-              onPress={() => {
-                if (!isWeb) bottomSheetRef.current?.close();
-                setPressedDay(undefined);
-                setOnCalendar(false);
-              }}
-            >
-              <Ionicons
-                name="list"
-                color={!onCalendar ? COLORS.textPrimary : COLORS.textMuted}
-                size={40}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setPressedDay(undefined);
-                setOnCalendar(true);
-              }}
-            >
-              <Ionicons
-                name="calendar"
-                color={onCalendar ? COLORS.textPrimary : COLORS.textMuted}
-                size={35}
-                style={{ paddingHorizontal: 10 }}
-              />
-            </Pressable>
+        )}
+        {!isWeb ? (
+          <View
+            style={{
+              alignItems: "flex-end",
+              marginLeft: "auto",
+              marginRight: 15,
+            }}
+          >
+            <View style={{ flexDirection: "row" }}>
+              <Pressable
+                onPress={() => {
+                  setPressedDay(undefined);
+                  setOnCalendar(true);
+                }}
+              >
+                <Ionicons
+                  name="calendar"
+                  color={onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                  size={35}
+                  style={{ paddingHorizontal: 10 }}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (!isWeb) bottomSheetRef.current?.close();
+                  setPressedDay(undefined);
+                  setOnCalendar(false);
+                }}
+              >
+                <Ionicons
+                  name="list"
+                  color={!onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                  size={40}
+                />
+              </Pressable>
+            </View>
           </View>
-        </View>
-      )}
+        ) : (
+          <View
+            style={{
+              alignItems: "flex-end",
+              marginLeft: "auto",
+              marginRight: 15,
+            }}
+          >
+            <View style={{ flexDirection: "row" }}>
+              <Pressable
+                onPress={() => {
+                  if (!isWeb) bottomSheetRef.current?.close();
+                  setPressedDay(undefined);
+                  setOnCalendar(false);
+                }}
+              >
+                <Ionicons
+                  name="list"
+                  color={!onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                  size={40}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setPressedDay(undefined);
+                  setOnCalendar(true);
+                }}
+              >
+                <Ionicons
+                  name="calendar"
+                  color={onCalendar ? COLORS.textPrimary : COLORS.textMuted}
+                  size={35}
+                  style={{ paddingHorizontal: 10 }}
+                />
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </View>
 
       {isWeb ? (
         <>
@@ -329,6 +456,11 @@ export default function calendar() {
               children={currentUser?.userData.approvedChildren
                 .map((c) => c?._id)
                 .filter((c) => c !== undefined)}
+              createVis
+              onCreateEvent={() => {
+                setCreateVisable(true);
+                if (!isWeb) openSheet();
+              }}
             />
           )}
         </>
@@ -364,7 +496,88 @@ export default function calendar() {
           childrenIds={childrenIds}
         />
       )}
-
+      <View
+        style={{
+          right: 0,
+          position: "absolute",
+          bottom: 60,
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            backgroundColor: COLORS.surfaceAlternate,
+            position: "absolute",
+            bottom: 30,
+            right: 30,
+            borderRadius: 50,
+            borderWidth: 1,
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderColor: "rgba(255, 255, 255, 0.05)",
+          }}
+          onPress={() => {
+            setCreateVisable(true);
+            if (!isWeb) openSheet();
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontFamily: "PoppinsSemiBold",
+                color: COLORS.textPrimary,
+              }}
+              numberOfLines={1}
+            >
+              Create Event
+            </Text>
+            <View
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Feather
+                name="plus"
+                size={28}
+                color="white"
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingLeft: 8,
+                }}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+      {isWeb && (
+        <WebCreateModal
+          visible={createVisable}
+          onClose={handleCloseSheet}
+          title={"Create Event"}
+        >
+          <CreateEvent
+            back={() => handleCloseSheet()}
+            error={() => {
+              Toast.show({
+                type: "error",
+                text1: "Event Create Failed",
+                text2: "Missing Required Fields",
+                position: "top",
+                visibilityTime: 2500,
+                topOffset: 50,
+              });
+              handleHaptics();
+            }}
+          />
+        </WebCreateModal>
+      )}
       {!isWeb && (
         <BottomSheet
           ref={bottomSheetRef}
@@ -381,30 +594,50 @@ export default function calendar() {
           backgroundComponent={CustomBackground}
           onClose={() => setPressedDay(undefined)}
         >
-          <BottomSheetView
-            style={{
-              flex: 1,
-              padding: 0,
-              alignItems: "flex-start",
-              backgroundColor: COLORS.surface,
-            }}
-          >
-            <View>
-              {selectedEvents?.map((event) => (
-                <EventCard
-                  key={event?._id}
-                  event={event ?? undefined}
-                  inClub={false}
-                  onEvent={true}
-                  onLongPress={() => handleRemove(event)}
-                  global={
-                    event.global &&
-                    currentUser?.userData.eventList?.includes(event._id)
-                  }
-                />
-              ))}
-            </View>
-          </BottomSheetView>
+          {createVisable ? (
+            <BottomSheetScrollView style={{ paddingBottom: 30 }}>
+              <CreateEvent
+                back={() => handleCloseSheet()}
+
+                error={() => {
+                  Toast.show({
+                    type: "error",
+                    text1: "Event Create Failed",
+                    text2: "Missing Required Fields",
+                    position: "top",
+                    visibilityTime: 2500,
+                    topOffset: 50,
+                  });
+                  handleHaptics();
+                }}
+              />
+            </BottomSheetScrollView>
+          ) : (
+            <BottomSheetView
+              style={{
+                flex: 1,
+                padding: 0,
+                alignItems: "flex-start",
+                backgroundColor: COLORS.surface,
+              }}
+            >
+              <View>
+                {selectedEvents?.map((event) => (
+                  <EventCard
+                    key={event?._id}
+                    event={event ?? undefined}
+                    inClub={false}
+                    onEvent={true}
+                    onLongPress={() => handleRemove(event)}
+                    global={
+                      event.global &&
+                      currentUser?.userData.eventList?.includes(event._id)
+                    }
+                  />
+                ))}
+              </View>
+            </BottomSheetView>
+          )}
         </BottomSheet>
       )}
     </View>
