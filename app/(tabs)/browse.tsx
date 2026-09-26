@@ -7,7 +7,6 @@ import { useSchoolData } from "@/hooks/useSchoolData";
 import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/browse.styles";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
-import { TouchableWithoutFeedback } from "@gorhom/bottom-sheet";
 import dayjs from "dayjs";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -19,7 +18,8 @@ import {
   Pressable,
   Text,
   TextInput,
-  View,
+  TouchableWithoutFeedback,
+  View
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -36,7 +36,54 @@ export default function Browse() {
 
   const currentDate = String(dayjs());
   const rawClubList = schoolData?.clubs ?? [];
+  /* const DUMMY_TAGS = [
+    "STEM",
+    "Arts",
+    "Sports",
+    "Academic",
+    "Recreation",
+    "Service",
+  ];
+  const DUMMY_NAMES = [
+    "Chess Club",
+    "Coding Club",
+    "Debate Team",
+    "Art Society",
+    "Robotics Club",
+    "Drama Club",
+    "Math Olympiad",
+    "Book Club",
+    "Photography Club",
+    "Music Ensemble",
+    "Environmental Club",
+    "Student Government",
+    "Volunteer Corps",
+    "Film Club",
+    "Culinary Club",
+  ];
+  const createClub = useMutation(api.clubs.createClub);
+  const handleCreateDummyClubs = async () => {
+    for (let i = 0; i < 15; i++) {
+      const name = DUMMY_NAMES[i] ?? `Dummy Club ${i + 1}`;
+      const tags = [
+        DUMMY_TAGS[i % DUMMY_TAGS.length],
+        DUMMY_TAGS[(i + 1) % DUMMY_TAGS.length],
+      ];
 
+      await createClub({
+        name,
+        description: `This is a dummy club for testing: ${name}.`,
+        tags,
+        clubColor: `hsl(${(i * 40) % 360}, 60%, 45%)`,
+        gradeRange: { minGrade: 9, maxGrade: 12 },
+        currentDate: dayjs().toISOString(),
+
+        restricted: false,
+        hasDeadline: false,
+      });
+    }
+  };
+*/
   const requestedClubs =
     currentUser?.userData.requestedClubs?.map((club) => {
       if (!club) return null;
@@ -116,12 +163,15 @@ export default function Browse() {
   const clubPage = (
     <View style={styles.cardsContainer}>
       <FlatList
+        style={{ flex: 1 }}
         data={filteredClubList}
         keyExtractor={(item) => item?._id ?? Math.random().toString()}
         contentContainerStyle={{ padding: 16 }}
         ListFooterComponent={<View />}
         ListFooterComponentStyle={{ height: 50 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
         renderItem={({ item }) => {
           const memberIds = new Set(item.members.map((m) => m.userId));
           const children = currentUser?.userData.approvedChildren
@@ -148,7 +198,7 @@ export default function Browse() {
   return (
     <TouchableWithoutFeedback
       onPressIn={() => {
-        Platform.OS === "web" ? undefined : Keyboard.dismiss;
+        if (Platform.OS !== "web") Keyboard.dismiss();
         setExpanded(false);
       }}
       style={{ flex: 1 }}
@@ -173,6 +223,23 @@ export default function Browse() {
           end={{ x: 1, y: 0 }}
           style={styles.gradientBar}
         />
+        {/* <TouchableOpacity
+          onPress={handleCreateDummyClubs}
+          style={{
+            backgroundColor: COLORS.surfaceAlternate,
+            paddingVertical: 12,
+            paddingHorizontal: 20,
+            borderRadius: 12,
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{ color: COLORS.textPrimary, fontFamily: "InterSemiBold" }}
+          >
+            Create 15 Dummy Clubs
+          </Text>
+        </TouchableOpacity>*/}
+
         <View style={{ flex: 1 }}>
           <View
             style={[

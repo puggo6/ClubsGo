@@ -17,6 +17,7 @@ type defProps = {
   disabled?: boolean;
   restricted?: boolean;
   fixSpacing?: boolean;
+  borderRad?: number;
 };
 type sizeProps = {
   onPress: () => void;
@@ -26,6 +27,7 @@ type sizeProps = {
   height: number;
   horizontalPadding?: number;
   restricted?: boolean;
+  borderRad?: number;
 };
 
 type pairProps = {
@@ -43,6 +45,7 @@ export default function GradientButton({
   disabled = false,
   restricted,
   fixSpacing,
+  borderRad,
 }: defProps) {
   return (
     <View style={styles.outerButton}>
@@ -54,7 +57,11 @@ export default function GradientButton({
         }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={[styles.gradientBorder, disabled && styles.disabledBorder]}
+        style={[
+          styles.gradientBorder,
+          disabled && styles.disabledBorder,
+          borderRad ? { borderRadius: borderRad } : {},
+        ]}
       >
         <Pressable
           onPress={onPress}
@@ -145,6 +152,7 @@ export function SizeGradientButton({
   horizontalPadding,
   disabled = false,
   restricted,
+  borderRad,
 }: sizeProps) {
   return (
     <View
@@ -158,7 +166,11 @@ export function SizeGradientButton({
         }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={[styles.gradientBorder, disabled && styles.disabledBorder]}
+        style={[
+          styles.gradientBorder,
+          disabled && styles.disabledBorder,
+          borderRad ? { borderRadius: borderRad } : {},
+        ]}
       >
         <Pressable
           onPress={onPress}
@@ -168,6 +180,7 @@ export function SizeGradientButton({
             pressed && styles.pressed,
             disabled && styles.disabled,
             { paddingVertical: height, paddingHorizontal: width },
+            borderRad ? { borderRadius: borderRad } : {},
           ]}
         >
           <Text style={[styles.text]}>{title}</Text>

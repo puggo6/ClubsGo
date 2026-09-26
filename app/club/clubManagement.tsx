@@ -4,7 +4,7 @@ import ClubFAB from "@/components/clubFAB";
 
 import AssignAdvisorsScreen from "@/components/assignAdvisorsScreen";
 import AssignOfficersScreen, {
-  Member,
+    Member,
 } from "@/components/assignOfficersScreen";
 import CreateSceenComp from "@/components/create";
 import CreateAnnouncement from "@/components/createAnnouncement";
@@ -29,8 +29,8 @@ import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/clubManagement.styles";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import BottomSheet, {
-  BottomSheetBackgroundProps,
-  BottomSheetScrollView,
+    BottomSheetBackgroundProps,
+    BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "convex/react";
 import dayjs, { Dayjs } from "dayjs";
@@ -39,20 +39,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  Easing,
-  FlatList,
-  Keyboard,
-  Platform,
-  Pressable,
-  SectionList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  useWindowDimensions,
-  View,
+    Animated,
+    Dimensions,
+    Easing,
+    FlatList,
+    Keyboard,
+    Platform,
+    Pressable,
+    SectionList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -889,6 +889,10 @@ export default function clubManagement() {
             events={events ?? []}
             canEdit={canEditClub}
             inClub={true}
+            onCreateEvent={() => {
+              setBottomSheetType(0);
+              openSheet(0);
+            }}
             onEdit={handleEditEvent}
             onDelete={handleDeleteEvent}
             onCancel={handleCancelEvent}

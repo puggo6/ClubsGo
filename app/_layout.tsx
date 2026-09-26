@@ -2,6 +2,7 @@ import { toastConfig } from "@/components/globalToast";
 import { COLORS } from "@/constants/theme";
 import ClerkAndConvexProvider from "@/providers/ClerkAndConvexProvider";
 import { useFonts } from "expo-font";
+import { SplashScreen } from "expo-router";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
 import { LogBox, View } from "react-native";
@@ -19,7 +20,9 @@ export default function RootLayout() {
     SystemUI.setBackgroundColorAsync("#000000");
   }, []);
 
-  const [fontsLoaded] = useFonts({
+  SplashScreen.preventAutoHideAsync();
+
+  const [fontsLoaded, error] = useFonts({
     InterLight: require("../assets/fonts/Inter_18pt-Light.ttf"),
     InterRegular: require("../assets/fonts/Inter_18pt-Regular.ttf"),
     InterSemiBold: require("../assets/fonts/Inter_18pt-SemiBold.ttf"),
@@ -51,6 +54,12 @@ export default function RootLayout() {
     NunitoSemiBold: require("../assets/fonts/Nunito-SemiBold.ttf"),
     NunitoBold: require("../assets/fonts/Nunito-Bold.ttf"),
   });
+  useEffect(() => {
+    if (fontsLoaded || error) {
+      // Hide the splash screen once fonts are loaded or an error occurs
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, error]);
 
   if (!fontsLoaded) {
     return null;

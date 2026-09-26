@@ -9,8 +9,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   cardsContainer: {
-    paddingBottom: 100,
-    backgroundColor: COLORS.background,
+    flex: 1,
   },
   header: {
     paddingBottom: 10,
