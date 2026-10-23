@@ -14,13 +14,12 @@ import {
 import Toast from "react-native-toast-message";
 import InitialLayout from "../components/initialLayout";
 
+SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   LogBox.ignoreAllLogs(true);
   useEffect(() => {
     SystemUI.setBackgroundColorAsync("#000000");
   }, []);
-
-  SplashScreen.preventAutoHideAsync();
 
   const [fontsLoaded, error] = useFonts({
     InterLight: require("../assets/fonts/Inter_18pt-Light.ttf"),
@@ -56,7 +55,6 @@ export default function RootLayout() {
   });
   useEffect(() => {
     if (fontsLoaded || error) {
-      // Hide the splash screen once fonts are loaded or an error occurs
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, error]);

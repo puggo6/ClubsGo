@@ -1,5 +1,4 @@
 import { COLORS } from "@/constants/theme";
-import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type props = {
@@ -103,24 +102,38 @@ export function TagsText({ tags }: tagsProps) {
 }
 export const availableTags = [
   "Academic",
-  "Sports",
   "STEM",
+  "Competition",
+  "HealthAndWellness",
+  "Sports",
   "Arts",
-  "HonorSociety",
-  "Recreation",
   "Music",
+  "HonorSociety",
   "Service",
+  "Leadership",
+  "Culture",
+  "Career",
+  "Recreation",
+  "Advocacy",
+  "Faith",
   "Other",
 ];
 export const tagColors: { [key: string]: string } = {
   Academic: "#4A90E2",
   Sports: "#F5A623",
   STEM: "#00B8D9",
+  Competition: "#F97316",
+  HealthAndWellness: "#10B981",
   Arts: "#D6457A",
   HonorSociety: "#FFD700",
+  Leadership: "#6366F1",
+  Culture: "#F43F5E",
+  Career: "#64748B",
   Recreation: "#FF7043",
   Music: "#9C27B0",
   Service: "#95e33d",
+  Advocacy: "#0EA5E9",
+  Faith: "#78716C",
   Other: "#D5D8DC",
 };
 

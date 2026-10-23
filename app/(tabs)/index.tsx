@@ -40,13 +40,14 @@ import {
   Platform,
   SectionList,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-export default function index() {
+export default function Index() {
   const currentUser = useUserData();
   const width = Dimensions.get("screen").width;
   const insets = useSafeAreaInsets();
@@ -54,6 +55,7 @@ export default function index() {
   const [createTrigger, setCreateTrigger] = useState(0);
   const router = useRouter();
   const leaveClub = useMutation(api.users.leaveClub);
+  const cancelJoinClubRequest = useMutation(api.users.cancelJoinClubRequest);
   const swipedRowRefs = useRef(new Set()); // Track which rows already triggered leave
   const isWeb = Platform.OS === "web";
 
@@ -137,6 +139,19 @@ export default function index() {
     currentUser?.userData.role,
     fullSchoolClubs,
   ]);
+  const nextMeetingDates = useQuery(api.clubs.getNextMeetingDates, {
+    clubIds: [
+      ...new Set(
+        [...clubList, ...pendingClubList, ...headClubs].map((club) => club._id),
+      ),
+    ],
+  });
+  const nextMeetingDateByClub = new Map(
+    (nextMeetingDates ?? []).map(({ clubId, dateNumber }) => [
+      clubId,
+      dateNumber,
+    ]),
+  );
 
   const [localClubs, setLocalClubs] = useState(clubList);
 
@@ -229,6 +244,16 @@ export default function index() {
     setLocalClubs((prev) => prev.filter((c) => c._id !== clubId));
 
     leaveClub({ clubId }).catch(() => {});
+  };
+  const handleCancelClubRequest = (clubId: Id<"clubs">) => {
+    cancelJoinClubRequest({ clubId }).catch((error) => {
+      Toast.show({
+        type: "error",
+        text1: "Unable to cancel request",
+        text2: error instanceof Error ? error.message : "Please try again.",
+        position: "top",
+      });
+    });
   };
   const noClubs =
     (!currentUser.userData.clubs || currentUser.userData.clubs.length === 0) &&
@@ -358,13 +383,14 @@ export default function index() {
                 sections={DATA}
                 keyExtractor={(item) => item._id.toString()}
                 contentContainerStyle={{ padding: 16 }}
-                renderItem={({ item }) => (
+                renderItem={({ item, section }) => (
                   <View>
                     <ClubCard
                       onPress={() => routeToManager(item._id)}
                       club={item}
                       joinCard={false}
                       inBrowse={false}
+                      nextMeetingDate={nextMeetingDateByClub.get(item._id)}
                       canManage={
                         !currentUser.userData.requestedClubs
                           .map((club) => {
@@ -375,6 +401,30 @@ export default function index() {
                       }
                       isAdmin={isAdmin(currentUser.userData.role)}
                     />
+                    {section.title === "Pending Clubs" && (
+                      <TouchableOpacity
+                        onPress={() => handleCancelClubRequest(item._id)}
+                        style={{
+                          alignSelf: "flex-end",
+                          marginHorizontal: 18,
+                          marginTop: 4,
+                          marginBottom: 12,
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          borderRadius: 16,
+                          backgroundColor: COLORS.surfaceLight,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: COLORS.cancelled,
+                            fontFamily: "InterSemiBold",
+                          }}
+                        >
+                          Cancel request
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
                 renderSectionHeader={({ section: { title } }) => (

@@ -252,12 +252,13 @@ export const joinClub = mutation({
     if (!school) return;
     const isStudent = currentUser.role === "student";
     const adminsNeedApproval =
-      school.configurations?.clubAdminsNeedApproval === true ||
-      club.configurations?.adminsNeedApproval === true;
+      school.configurations?.clubAdminsNeedApproval ??
+      club.configurations?.adminsNeedApproval ??
+      false;
 
-    const needsApproval =
-      (isStudent && club.configurations?.membersNeedApproval === true) ||
-      (!isStudent && adminsNeedApproval);
+    const needsApproval = isStudent
+      ? club.configurations?.membersNeedApproval === true
+      : adminsNeedApproval;
 
     if (!needsApproval) {
       if (isStudent) {
@@ -355,6 +356,34 @@ export const requestJoinClub = mutation({
     }
   },
 });
+
+export const cancelJoinClubRequest = mutation({
+  args: {
+    clubId: v.id("clubs"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const club = await ctx.db.get(args.clubId);
+
+    await ctx.db.patch(currentUser._id, {
+      requestedClubs: (currentUser.requestedClubs ?? []).filter(
+        (clubId) => clubId !== args.clubId,
+      ),
+    });
+
+    if (club) {
+      await ctx.db.patch(args.clubId, {
+        pendingMembers: (club.pendingMembers ?? []).filter(
+          (userId) => userId !== currentUser._id,
+        ),
+        pendingAdvisors: (club.pendingAdvisors ?? []).filter(
+          (userId) => userId !== currentUser._id,
+        ),
+      });
+    }
+  },
+});
+
 export const exitChat = mutation({
   handler: async (ctx) => {
     const user = await getAuthenticatedUser(ctx);
@@ -672,12 +701,25 @@ export const leaveClub = mutation({
     const updatedMembers = club?.members.filter(
       (member) => member.userId !== currentUser._id,
     );
+    const updatedAdvisors = club?.advisors?.filter(
+      (member) => member !== currentUser._id,
+    );
     const updatedClubs = currentUser.clubs.filter(
       (listId) => listId !== args.clubId,
     );
 
+    const groupChat = club?.groupChat ? await ctx.db.get(club.groupChat) : null;
+    if (groupChat) {
+      await ctx.db.patch(groupChat._id, {
+        members: groupChat.members.filter(
+          (member) => member.user !== currentUser._id,
+        ),
+      });
+    }
+
     await ctx.db.patch(args.clubId, {
       members: updatedMembers,
+      advisors: updatedAdvisors,
       numMembers: (club ? club.numMembers : 0) - 1,
     });
     await ctx.db.patch(currentUser._id, {

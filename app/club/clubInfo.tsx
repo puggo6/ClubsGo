@@ -628,6 +628,7 @@ export default function clubInfo() {
         style={[
           styles.infoHeader,
           {
+            backgroundColor: club?.clubColor ?? COLORS.grey,
             height: HEADER_HEIGHT,
             position: "absolute",
             top: 60,

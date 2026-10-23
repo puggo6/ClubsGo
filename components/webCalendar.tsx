@@ -23,6 +23,7 @@ type Props = {
   onDelete?: (event: Doc<"events">) => void;
   onCreateEvent?: () => void;
   removal?: boolean;
+  removableEventIds?: Id<"events">[];
   children?: Id<"users">[];
   createVis?: boolean;
   onCreatePress?: () => void;
@@ -41,6 +42,7 @@ export default function WebCalendar({
   onCreateEvent,
   onEdit,
   removal,
+  removableEventIds,
   children,
 }: Props) {
   const [currentWeekStart, setCurrentWeekStart] = useState(
@@ -191,7 +193,16 @@ export default function WebCalendar({
                           onCancel={() => onCancel?.(event)}
                           onDelete={() => onDelete?.(event)}
                           cancelled={event.canceled}
-                          removal={removal ?? false}
+                          removal={
+                            removal &&
+                            removableEventIds?.includes(event._id) === true
+                          }
+                          calendarToggle={
+                            removal &&
+                            removableEventIds?.includes(event._id)
+                              ? () => onEventLongPress?.(event)
+                              : undefined
+                          }
                           childrenIds={children}
                         />
                       </View>

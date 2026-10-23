@@ -1,6 +1,7 @@
 import CreateGroupchat from "@/components/createGroupchat";
 import Divider from "@/components/divider";
 import GroupchatCard from "@/components/groupchatCard";
+import { StylizedSearch } from "@/components/stylizedInput";
 import { WebCreateModal } from "@/components/webCreateModal";
 import isWeb from "@/constants/isWeb";
 import { isAdmin, isHeadAdmin, isNonAdmin } from "@/constants/roles";
@@ -38,7 +39,7 @@ export default function messages() {
   const createGroupChat = useMutation(api.groupChats.createChat);
   const deleteChat = useMutation(api.groupChats.deleteChat);
   const exitChat = useMutation(api.users.exitChat);
-
+  const [searchQuery, setSearchQuery] = useState("");
   const headAdmin =
     isHeadAdmin(currentUser?.userData.role) &&
     currentUser?.userData.approvedAdmin;
@@ -237,6 +238,12 @@ export default function messages() {
       />
 
       <View style={{ flex: 1 }}>
+        <StylizedSearch
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          dark={false}
+          placeholder="Tap to edit text..."
+        />
         {headAdmin ? (
           <SectionList
             sections={sections}

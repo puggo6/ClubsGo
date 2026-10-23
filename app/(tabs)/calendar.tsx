@@ -346,9 +346,9 @@ export default function calendar() {
           <View
             style={{
               position: "absolute",
-              left: 0,
+              left: isWeb ? 0 : 10,
               right: 0,
-              alignItems: "center",
+              alignItems: isWeb ? "center" : "flex-start",
             }}
           >
             <EventFilter />
@@ -453,6 +453,7 @@ export default function calendar() {
               onEventPress={routeDocToManager}
               onEventLongPress={handleRemove}
               removal={true}
+              removableEventIds={currentUser?.userData.eventList}
               children={currentUser?.userData.approvedChildren
                 .map((c) => c?._id)
                 .filter((c) => c !== undefined)}
@@ -496,66 +497,69 @@ export default function calendar() {
           childrenIds={childrenIds}
         />
       )}
-      <View
-        style={{
-          right: 0,
-          position: "absolute",
-          bottom: 60,
-        }}
-      >
-        <TouchableOpacity
-          style={{
-            backgroundColor: COLORS.surfaceAlternate,
-            position: "absolute",
-            bottom: 30,
-            right: 30,
-            borderRadius: 50,
-            borderWidth: 1,
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderColor: "rgba(255, 255, 255, 0.05)",
-          }}
-          onPress={() => {
-            setCreateVisable(true);
-            if (!isWeb) openSheet();
-          }}
-        >
+      {isAdmin(currentUser?.userData.role) &&
+        currentUser.userData.approvedAdmin && (
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
+              right: 0,
+              position: "absolute",
+              bottom: 60,
             }}
           >
-            <Text
+            <TouchableOpacity
               style={{
-                fontSize: 18,
-                fontFamily: "PoppinsSemiBold",
-                color: COLORS.textPrimary,
+                backgroundColor: COLORS.surfaceAlternate,
+                position: "absolute",
+                bottom: 30,
+                right: 30,
+                borderRadius: 50,
+                borderWidth: 1,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderColor: "rgba(255, 255, 255, 0.05)",
               }}
-              numberOfLines={1}
-            >
-              Create Event
-            </Text>
-            <View
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
+              onPress={() => {
+                setCreateVisable(true);
+                if (!isWeb) openSheet();
               }}
             >
-              <Feather
-                name="plus"
-                size={28}
-                color="white"
+              <View
                 style={{
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
-                  paddingLeft: 8,
                 }}
-              />
-            </View>
+              >
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontFamily: "PoppinsSemiBold",
+                    color: COLORS.textPrimary,
+                  }}
+                  numberOfLines={1}
+                >
+                  Create Event
+                </Text>
+                <View
+                  style={{
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Feather
+                    name="plus"
+                    size={28}
+                    color="white"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingLeft: 8,
+                    }}
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </View>
+        )}
       {isWeb && (
         <WebCreateModal
           visible={createVisable}
