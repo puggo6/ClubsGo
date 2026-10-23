@@ -19,7 +19,7 @@ import {
   Text,
   TextInput,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -260,12 +260,15 @@ export default function Browse() {
               <Ionicons name="search" size={20} color={COLORS.textSecondary} />
 
               <TextInput
-                style={{
-                  flex: 1,
-                  fontSize: 16,
-                  color: COLORS.textPrimary,
-                  marginLeft: 8,
-                }}
+                style={
+                  {
+                    flex: 1,
+                    fontSize: 16,
+                    color: COLORS.textPrimary,
+                    marginLeft: 8,
+                    outlineStyle: "none",
+                  } as any
+                }
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder={"Search"}

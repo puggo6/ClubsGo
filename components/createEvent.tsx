@@ -332,12 +332,14 @@ export default function CreateEvent({ inputClub, back, error }: props) {
                     height: 40,
                     fontSize: 16,
                     borderColor: COLORS.surfaceLight,
+                    color: COLORS.textPrimary,
                   }}
                   labelField="label"
                   valueField="value"
                   data={dropdownClubs ?? []}
                   search
                   searchPlaceholder="Search..."
+
                   renderItem={renderItem}
                   maxHeight={300}
                   value={selectedClub}
@@ -931,6 +933,7 @@ export function EditEvent({ inputEvent, back }: editProps) {
                     height: 40,
                     fontSize: 16,
                     borderColor: COLORS.surfaceLight,
+                    color: COLORS.textPrimary,
                   }}
                   labelField="label"
                   valueField="value"

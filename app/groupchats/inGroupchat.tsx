@@ -20,6 +20,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -160,14 +161,14 @@ export default function InGroupchat() {
       <View style={localStyles.membersHeader}>
         <Text style={localStyles.membersTitle}>Current Members</Text>
       </View>
-      <FlatList
-        data={groupchat?.members}
-        keyExtractor={(item) => item.toString()}
-        numColumns={isWeb ? 3 : 2}
-        renderItem={({ item }) => {
+      <ScrollView contentContainerStyle={localStyles.membersGrid}>
+        {groupchat?.members.map((item, index) => {
           const u = fullSchool?.users.find((u) => u?._id === item.user?._id);
           return (
-            <View style={{ margin: 5 }}>
+            <View
+              key={item.user?._id?.toString() ?? index.toString()}
+              style={localStyles.memberItem}
+            >
               <SmallMemberCard
                 userPFP={u?.profilePicture}
                 name={u?.fullName ?? ""}
@@ -185,8 +186,8 @@ export default function InGroupchat() {
               />
             </View>
           );
-        }}
-      />
+        })}
+      </ScrollView>
     </>
   );
 
@@ -386,12 +387,14 @@ export default function InGroupchat() {
                         (m) => m.user?._id !== currentUser.userData._id,
                       )?.user?.fullName ?? "")}
               </Text>
-              <Text style={styles.chatSubtext}>
-                {groupchat?.members.length} member
-                {groupchat?.members.length && groupchat?.members.length > 1
-                  ? "s"
-                  : ""}
-              </Text>
+              {(groupchat?.members?.length ?? 0) > 2 && (
+                <Text style={styles.chatSubtext}>
+                  {groupchat?.members.length} member
+                  {groupchat?.members.length && groupchat?.members.length > 1
+                    ? "s"
+                    : ""}
+                </Text>
+              )}
               <View
                 style={{
                   width: "100%",
@@ -533,7 +536,7 @@ export default function InGroupchat() {
 }
 
 const localStyles = StyleSheet.create({
-  // ── web ──────────────────────────────────────────────────────
+  // web
   webContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -615,6 +618,17 @@ const localStyles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
   },
+  membersGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignContent: "flex-start",
+  },
+  memberItem: {
+    flexBasis: 170,
+    flexGrow: 1,
+    maxWidth: 240,
+    margin: 5,
+  },
   dateSeparator: {
     fontSize: 13,
     fontFamily: "OpenSansRegular",
@@ -644,6 +658,7 @@ const localStyles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    marginHorizontal: 20,
   },
   modalActions: {
     flexDirection: "row",

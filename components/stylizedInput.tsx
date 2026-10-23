@@ -58,7 +58,7 @@ export default function StylizedInput({
           style={[
             styles.input,
             dark ? { backgroundColor: COLORS.background } : null,
-            { textAlignVertical: "top" },
+            { textAlignVertical: "top", outlineStyle: "none" } as any,
           ]}
           value={value}
           onChangeText={onChangeText}
@@ -76,10 +76,11 @@ export default function StylizedInput({
           style={[
             styles.input,
             dark ? { backgroundColor: COLORS.background } : null,
-            { textAlignVertical: "top" },
+            { textAlignVertical: "top", outlineStyle: "none" } as any,
           ]}
           value={value}
           onChangeText={onChangeText}
+
           placeholder={placeholder}
           placeholderTextColor="#888"
           multiline
@@ -109,7 +110,11 @@ export function LargeStylizedInput({
         style={[
           styles.input,
           dark ? { backgroundColor: COLORS.background } : null,
-          { textAlignVertical: "top", height: 200 },
+          {
+            textAlignVertical: "top",
+            height: 200,
+            outlineStyle: "none",
+          } as any,
           { borderRadius: 20 },
         ]}
         value={value}
@@ -162,12 +167,15 @@ export function StylizedSearch({
       <Ionicons name="search" size={20} color={COLORS.textSecondary} />
 
       <TextInput
-        style={{
-          flex: 1,
-          fontSize: 16,
-          color: COLORS.textPrimary,
-          marginLeft: 8,
-        }}
+        style={
+          {
+            flex: 1,
+            fontSize: 16,
+            color: COLORS.textPrimary,
+            marginLeft: 8,
+            outlineStyle: "none",
+          } as any
+        }
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

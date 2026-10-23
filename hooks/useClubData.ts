@@ -12,10 +12,6 @@ export function useClubData(clubId?: Id<"clubs"> | null) {
   return clubData;
 }
 
-export function useClubSummary(clubId?: Id<"clubs"> | null) {
-  return useQuery(api.clubs.getClubSummary, clubId ? { clubId } : "skip");
-}
-
 export function useClubContext(clubId?: Id<"clubs"> | null) {
   return useQuery(api.clubs.getClubContext, clubId ? { clubId } : "skip");
 }

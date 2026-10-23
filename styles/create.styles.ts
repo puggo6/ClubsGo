@@ -146,6 +146,7 @@ export const styles = StyleSheet.create({
   restrictedContainer: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 20,
   },
   lockContainer: {
     width: 45,
@@ -169,16 +170,16 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     flexDirection: "row",
+    flexWrap: "wrap",
   },
   optionsText: {
-    marginVertical: 10,
+    marginVertical: 4,
     fontFamily: "LatoRegular",
     color: COLORS.textMuted,
 
     fontSize: 18,
   },
   dotIcon: {
-    marginVertical: 10,
     color: COLORS.textMuted,
   },
   existingSchoolPrompt: {

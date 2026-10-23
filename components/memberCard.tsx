@@ -19,6 +19,7 @@ type props = {
   dateJoined: string;
   isMember: boolean;
   onPress: () => void;
+  onDeny?: () => void;
   approvalCard: boolean;
   role?: string;
 };
@@ -66,6 +67,7 @@ export default function MemberCard({
   dateJoined,
   isMember,
   onPress,
+  onDeny,
   approvalCard,
   role,
 }: props) {
@@ -124,16 +126,29 @@ export default function MemberCard({
           </Text>
         </View>
         {approvalCard && (
-          <View style={styles.outerButton}>
+          <View style={[styles.outerButton, styles.approvalActions]}>
             <Pressable
               onPress={onPress}
               style={({ pressed }) => [
-                styles.button,
+                styles.approvalButton,
+                styles.approveButton,
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.buttonText}>Approve</Text>
+              <Text style={styles.approvalButtonText}>Approve</Text>
             </Pressable>
+            {onDeny && (
+              <Pressable
+                onPress={onDeny}
+                style={({ pressed }) => [
+                  styles.approvalButton,
+                  styles.denyButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.approvalButtonText}>Deny</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </View>
@@ -438,8 +453,8 @@ export function SmallMemberCard({ userPFP, name }: schoolProps) {
 
         <Text
           numberOfLines={1}
-          adjustsFontSizeToFit
-          style={[styles.userName, { width: 100 }]}
+
+          style={[styles.userName, { alignSelf: "center", fontSize: 14 }]}
         >
           {name}
         </Text>
@@ -486,6 +501,29 @@ const styles = StyleSheet.create({
   },
   outerButton: {
     paddingHorizontal: 10,
+  },
+  approvalActions: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  approvalButton: {
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  approveButton: {
+    backgroundColor: "#4CAF50",
+  },
+  denyButton: {
+    backgroundColor: COLORS.cancelled,
+  },
+  approvalButtonText: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontFamily: "InterSemiBold",
+    fontWeight: 600,
   },
   button: {
     backgroundColor: "#4CAF50",

@@ -80,6 +80,9 @@ export default function school() {
   const [globalSchoolPage, setGlobalSchoolPage] = useState(
     school?.configurations?.globalSchoolPage ?? false,
   );
+  const [messagingEnabled, setMessagingEnabled] = useState(
+    school?.configurations?.messagingEnabled ?? false,
+  );
   const [hasChanges, setHasChanges] = useState(false);
   const translateY = useRef(new Animated.Value(100)).current;
   const isMounted = useRef(false);
@@ -102,6 +105,7 @@ export default function school() {
       adminApproval,
       clubAdminApproval,
       globalSchoolPage,
+      messagingEnabled,
     });
     Toast.show({
       type: "success",
@@ -349,6 +353,15 @@ export default function school() {
                   setHasChanges(true);
                 }}
               />
+              <SchoolSetting
+                title="Enable School Messaging"
+                description="Toggles club group chat functionality as well as individual messaging between users and advisors in the school."
+                value={messagingEnabled}
+                onValueChange={() => {
+                  setMessagingEnabled(!messagingEnabled);
+                  setHasChanges(true);
+                }}
+              />
             </>
           )}
 
@@ -405,6 +418,7 @@ export default function school() {
       </Animated.View>
       <DeletionModal
         title={school?.name}
+        itemName={school?.name}
         description="Your School and all of its data will be permanently deleted and cannot be recovered."
         visible={deleteVisable}
         onClose={() => setDeleteVisable(false)}

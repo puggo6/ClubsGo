@@ -16,6 +16,15 @@ type props = {
 export default function ChildClubs({ child, onClubPress }: props) {
   const clubs = child.clubs;
   const fullClubs = useQuery(api.clubs.getClubList, { clubList: clubs });
+  const nextMeetingDates = useQuery(api.clubs.getNextMeetingDates, {
+    clubIds: (fullClubs ?? []).map((club) => club._id),
+  });
+  const nextMeetingDateByClub = new Map(
+    (nextMeetingDates ?? []).map(({ clubId, dateNumber }) => [
+      clubId,
+      dateNumber,
+    ]),
+  );
 
   const goodClubs = fullClubs?.filter((c) => c !== undefined && c !== null);
 
@@ -39,6 +48,7 @@ export default function ChildClubs({ child, onClubPress }: props) {
                   club={item}
                   joinCard={false}
                   canManage={false}
+                  nextMeetingDate={nextMeetingDateByClub.get(item._id)}
                   child
                 />
               )}

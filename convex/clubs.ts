@@ -504,31 +504,6 @@ export const getClubData = query({
   },
 });
 
-export const getClubSummary = query({
-  args: { clubId: v.id("clubs") },
-  handler: async (ctx, args) => {
-    const club = await ctx.db.get(args.clubId);
-    if (!club) return;
-
-    const members = await Promise.all(
-      club.members.map(async (member) => ({
-        ...member,
-        user: await ctx.db.get(member.userId),
-      })),
-    );
-    const events = await Promise.all(
-      club.eventList.map((eventId) => ctx.db.get(eventId)),
-    );
-
-    return {
-      _id: club._id,
-      name: club.name,
-      members,
-      eventList: events,
-    };
-  },
-});
-
 export const getClubContext = query({
   args: { clubId: v.id("clubs") },
   handler: async (ctx, args) => {
@@ -686,6 +661,44 @@ export const approveMember = mutation({
   },
 });
 
+export const denyJoinRequest = mutation({
+  args: {
+    clubId: v.id("clubs"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const club = await ctx.db.get(args.clubId);
+    if (!club) throw new Error("Club not found");
+    if (!(club.advisors ?? []).includes(currentUser._id)) {
+      throw new Error("Only club admins can deny join requests");
+    }
+
+    const isPending =
+      club.pendingMembers?.includes(args.userId) ||
+      club.pendingAdvisors?.includes(args.userId);
+    if (!isPending) throw new Error("User is not pending in this club");
+
+    await ctx.db.patch(args.clubId, {
+      pendingMembers: (club.pendingMembers ?? []).filter(
+        (userId) => userId !== args.userId,
+      ),
+      pendingAdvisors: (club.pendingAdvisors ?? []).filter(
+        (userId) => userId !== args.userId,
+      ),
+    });
+
+    const user = await ctx.db.get(args.userId);
+    if (user) {
+      await ctx.db.patch(args.userId, {
+        requestedClubs: (user.requestedClubs ?? []).filter(
+          (clubId) => clubId !== args.clubId,
+        ),
+      });
+    }
+  },
+});
+
 export const getClubList = query({
   args: {
     clubList: v.array(v.id("clubs")),
@@ -799,31 +812,41 @@ export const setClubConfigurations = mutation({
   },
 });
 
-export const getNextEventDate = query({
-  args: { clubId: v.id("clubs") },
+export const getNextMeetingDates = query({
+  args: { clubIds: v.array(v.id("clubs")) },
   handler: async (ctx, args) => {
-    const club = await ctx.db.get(args.clubId);
-    if (!club) return undefined;
-
-    const events = await Promise.all(
-      club.eventList.map((id) => ctx.db.get(id)),
+    const clubIds = [...new Set(args.clubIds)];
+    const clubs = await Promise.all(
+      clubIds.map((clubId) => ctx.db.get(clubId)),
     );
-
     const now = Date.now();
 
-    const upcomingMeetings = events
-      .filter(
-        (e): e is Doc<"events"> =>
-          !!e &&
-          e.eventType === "Meeting" &&
-          !!e.startTime &&
-          new Date(e.dateNumber).getTime() > now,
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.dateNumber).getTime() - new Date(b.dateNumber).getTime(),
-      );
+    return Promise.all(
+      clubs
+        .filter((club): club is NonNullable<typeof club> => club !== null)
+        .map(async (club) => {
+          const events = await Promise.all(
+            club.eventList.map((eventId) => ctx.db.get(eventId)),
+          );
+          const upcomingMeetings = events
+            .filter(
+              (event): event is Doc<"events"> =>
+                !!event &&
+                event.eventType === "Meeting" &&
+                !!event.startTime &&
+                new Date(event.dateNumber).getTime() > now,
+            )
+            .sort(
+              (a, b) =>
+                new Date(a.dateNumber).getTime() -
+                new Date(b.dateNumber).getTime(),
+            );
 
-    return upcomingMeetings[0]?.dateNumber ?? undefined;
+          return {
+            clubId: club._id,
+            dateNumber: upcomingMeetings[0]?.dateNumber,
+          };
+        }),
+    );
   },
 });

@@ -4,7 +4,7 @@ import ClubFAB from "@/components/clubFAB";
 
 import AssignAdvisorsScreen from "@/components/assignAdvisorsScreen";
 import AssignOfficersScreen, {
-    Member,
+  Member,
 } from "@/components/assignOfficersScreen";
 import CreateSceenComp from "@/components/create";
 import CreateAnnouncement from "@/components/createAnnouncement";
@@ -29,8 +29,8 @@ import { useUserData } from "@/hooks/useUserData";
 import { styles } from "@/styles/clubManagement.styles";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import BottomSheet, {
-    BottomSheetBackgroundProps,
-    BottomSheetScrollView,
+  BottomSheetBackgroundProps,
+  BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "convex/react";
 import dayjs, { Dayjs } from "dayjs";
@@ -39,20 +39,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Easing,
-    FlatList,
-    Keyboard,
-    Platform,
-    Pressable,
-    SectionList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    useWindowDimensions,
-    View,
+  Animated,
+  Dimensions,
+  Easing,
+  FlatList,
+  Keyboard,
+  Platform,
+  Pressable,
+  SectionList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -118,12 +118,23 @@ export default function clubManagement() {
     }
   }, [currentUser?.userData._id, club?.advisors]);
   const approveMember = useMutation(api.clubs.approveMember);
+  const denyJoinRequest = useMutation(api.clubs.denyJoinRequest);
   const handleApprove = (clubObj: Id<"clubs">, user: Id<"users">) => {
     const club = clubObj;
     approveMember({
       clubId: club,
       userId: user,
       dateJoined: currentDateString,
+    });
+  };
+  const handleDeny = (clubId: Id<"clubs">, userId: Id<"users">) => {
+    denyJoinRequest({ clubId, userId }).catch((error) => {
+      Toast.show({
+        type: "error",
+        text1: "Unable to deny request",
+        text2: error instanceof Error ? error.message : "Please try again.",
+        position: "top",
+      });
     });
   };
   const eventList = club?.eventList;
@@ -434,55 +445,76 @@ export default function clubManagement() {
       : undefined;
   };
   const WebTopNav = () => (
-    <View style={webStyles.topNav}>
-      {/* club identity on the left */}
-      <View style={webStyles.topNavIdentity}>
-        <Text style={webStyles.topNavClubName} numberOfLines={1}>
-          {club?.name}
-        </Text>
-      </View>
+    <View style={{ flexDirection: "column" }}>
+      <View style={webStyles.topNav}>
+        {/* club identity on the left */}
+        <View style={webStyles.topNavIdentity}>
+          <Text style={webStyles.topNavClubName} numberOfLines={1}>
+            {club?.name}
+          </Text>
+        </View>
 
-      {/* tab nav in the center */}
-      <View style={webStyles.topNavTabs}>
-        {[
-          { label: "Info", tabIndex: 0 },
-          { label: "Members", tabIndex: 1 },
-          { label: "Events", tabIndex: 2 },
-          { label: "Announcements", tabIndex: 3 },
-          { label: "Settings", tabIndex: 4 },
-        ].map((item) => (
-          <Pressable
-            key={item.tabIndex}
-            onPress={() => setIndex(item.tabIndex)}
-            // @ts-ignore
-            style={[
-              webStyles.topNavTab,
-              index === item.tabIndex && webStyles.topNavTabActive,
-            ]}
-          >
-            <Text
+        {/* tab nav in the center */}
+        <View style={webStyles.topNavTabs}>
+          {[
+            { label: "Info", tabIndex: 0 },
+            { label: "Members", tabIndex: 1 },
+            { label: "Events", tabIndex: 2 },
+            { label: "Announcements", tabIndex: 3 },
+            { label: "Settings", tabIndex: 4 },
+          ].map((item) => (
+            <Pressable
+              key={item.tabIndex}
+              onPress={() => setIndex(item.tabIndex)}
+              // @ts-ignore
               style={[
-                webStyles.topNavTabLabel,
-                index === item.tabIndex && webStyles.topNavTabLabelActive,
+                webStyles.topNavTab,
+                index === item.tabIndex && webStyles.topNavTabActive,
               ]}
             >
-              {item.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+              <Text
+                style={[
+                  webStyles.topNavTabLabel,
+                  index === item.tabIndex && webStyles.topNavTabLabelActive,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
-      {/* home button on the right */}
-      <Pressable
-        onPress={() => router.push("/(tabs)")}
-        style={webStyles.topNavHome}
-        // @ts-ignore
-        onMouseEnter={(e: any) => (e.currentTarget.style.opacity = "0.7")}
-        onMouseLeave={(e: any) => (e.currentTarget.style.opacity = "1")}
-      >
-        <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
-        <Text style={webStyles.topNavHomeLabel}>Home</Text>
-      </Pressable>
+        {/* home button on the right */}
+        <Pressable
+          onPress={() => router.push("/(tabs)")}
+          style={webStyles.topNavHome}
+          // @ts-ignore
+          onMouseEnter={(e: any) => (e.currentTarget.style.opacity = "0.7")}
+          onMouseLeave={(e: any) => (e.currentTarget.style.opacity = "1")}
+        >
+          <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
+          <Text style={webStyles.topNavHomeLabel}>Home</Text>
+        </Pressable>
+      </View>
+      {notInClub && (
+        <View
+          style={[webStyles.topNav, { height: "auto", paddingVertical: 8 }]}
+        >
+          <Text
+            style={{
+              color: COLORS.textPrimary,
+              fontFamily: "PoppinsSemiBold",
+              fontSize: 22,
+              textAlign: "center",
+              width: "100%",
+              textDecorationLine: "underline",
+            }}
+          >
+            You are not currently a member of this club. Press the join button
+            in settings to manage this club's activity!
+          </Text>
+        </View>
+      )}
     </View>
   );
   const infoTab = () => (
@@ -512,9 +544,10 @@ export default function clubManagement() {
             color: COLORS.textPrimary,
             fontFamily: "PoppinsBold",
             textAlign: "center",
+            marginHorizontal: 15,
           }}
-
-          numberOfLines={1}
+          adjustsFontSizeToFit
+          numberOfLines={isWeb() ? 3 : 1}
         >
           {club?.name}
         </Text>
@@ -708,6 +741,11 @@ export default function clubManagement() {
                               handleApprove(club?._id, item?._id);
                             }
                           : () => {}
+                      }
+                      onDeny={
+                        item?._id
+                          ? () => handleDeny(club._id, item._id)
+                          : undefined
                       }
                       approvalCard={
                         club?.pendingMembers
@@ -1159,10 +1197,10 @@ export default function clubManagement() {
 
                   <Text style={styles.restrictedText}>
                     {status
-                      ? "Users can currently" +
+                      ? "Students can currently" +
                         (club?.restricted ? " apply to join " : " join ") +
                         club?.name
-                      : "Users can not currently" +
+                      : "Students can not currently" +
                         (club?.restricted ? " apply to join " : " join ") +
                         club?.name}
                   </Text>
@@ -1170,7 +1208,7 @@ export default function clubManagement() {
               </View>
             </Pressable>
           )}
-          <View style={{ height: 40 }} />
+
           {!!canEditClub && (
             <>
               <SettingsButton
@@ -1253,7 +1291,7 @@ export default function clubManagement() {
                 }}
                 overrideLabel={
                   currentUser?.userData?.school?.configurations
-                    ?.adminsNeedApproval !== adminsNeedApproval
+                    ?.clubAdminsNeedApproval !== adminsNeedApproval
                     ? "Overridden by School Settings"
                     : undefined
                 }
@@ -1275,7 +1313,7 @@ export default function clubManagement() {
             </>
           )}
           <View style={{ justifyContent: "flex-end" }}>
-            {isStudent(currentUser?.userData.role) ? (
+            {isStudent(currentUser?.userData.role) || notInClub ? (
               <GradientButton
                 onPress={
                   notInClub && club?._id
@@ -1292,6 +1330,7 @@ export default function clubManagement() {
                 restricted={
                   (!club?.advisors || club?.advisors?.length <= 1) && isAdmin
                 }
+                fixSpacing
               />
             ) : (
               <ButtonPair

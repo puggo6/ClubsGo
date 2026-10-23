@@ -1,6 +1,5 @@
 import { COLORS } from "@/constants/theme";
 import { Doc } from "@/convex/_generated/dataModel";
-import { useClubSummary } from "@/hooks/useClubData";
 
 import { Entypo, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import dayjs from "dayjs";
@@ -30,6 +29,7 @@ type props = {
   isAdmin?: boolean;
   inBrowse?: boolean;
   child?: boolean;
+  nextMeetingDate?: string;
 
   childrenNames?: String[];
 };
@@ -42,27 +42,14 @@ export default function ClubCard({
   isAdmin = false,
   inBrowse,
   child,
+  nextMeetingDate,
   childrenNames = [],
 }: props) {
-  const events = (useClubSummary(club._id)?.eventList ?? []).filter(
-    (e): e is Doc<"events"> => !!e && !!e.startTime,
-  );
-
-  const sortedEvents = [...events].sort((a, b) => {
-    if (!a.startTime || !b.startTime) return 0;
-    const timeA = dayjs(a.startTime, "HH:mm");
-    const timeB = dayjs(b.startTime, "HH:mm");
-    return timeA.isAfter(timeB) ? 1 : -1;
-  });
-
+  const date = nextMeetingDate
+    ? dayjs(nextMeetingDate).format("dddd, M/D")
+    : undefined;
   const name = club.name;
   const members = club.members?.length ?? 0;
-  const date =
-    sortedEvents[0] &&
-    sortedEvents[0].eventType === "Meeting" &&
-    dayjs(sortedEvents[0].dateNumber).isAfter(dayjs())
-      ? dayjs(sortedEvents[0].dateNumber).format("dddd, M/D")
-      : undefined;
 
   const tag1 = club.tags[0];
   let tag2 = club.tags[1];
@@ -142,7 +129,7 @@ export default function ClubCard({
                   />
                   <Text style={styles.webPrivateNoticeText}>
                     This club is currently private. Make it public in Club
-                    Settings to allow students and advisors to join.
+                    Settings to allow students to join.
                   </Text>
                 </View>
               )}
@@ -253,8 +240,7 @@ export default function ClubCard({
               {!club.clubPublic && isAdmin && !inBrowse && (
                 <View style={styles.privateNotice}>
                   <Text style={styles.privateNoticeText}>
-                    This club is currently private - no students or advisors can
-                    join.
+                    This club is currently private - no students can join.
                   </Text>
                 </View>
               )}

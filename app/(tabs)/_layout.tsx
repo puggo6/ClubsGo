@@ -50,11 +50,13 @@ const WebTopbar = ({
   newMessage,
   canCreate,
   schoolTab,
+  messagingEnabled,
 }: {
   inSchool: boolean;
   newMessage: boolean;
   canCreate: boolean;
   schoolTab?: boolean;
+  messagingEnabled: boolean;
 }) => {
   return (
     <View style={styles.topbar}>
@@ -101,7 +103,7 @@ const WebTopbar = ({
             }
           />
         )}
-        {inSchool && (
+        {inSchool && messagingEnabled && (
           <SidebarItem
             href="/messages"
             label="Messages"
@@ -150,6 +152,8 @@ export default function TabLayout() {
     ?.globalSchoolPage
     ? true
     : false;
+  const messagingEnabled =
+    currentUser?.userData.school?.configurations?.messagingEnabled ?? true;
   if (isWeb) {
     return (
       <View style={styles.webContainer}>
@@ -158,6 +162,7 @@ export default function TabLayout() {
           newMessage={newMessage}
           canCreate={canCreate}
           schoolTab={schoolTab}
+          messagingEnabled={messagingEnabled}
         />
         <View style={styles.webContent}>
           <Slot />
@@ -261,7 +266,7 @@ export default function TabLayout() {
                 )}
               </>
             ),
-            href: inSchool ? undefined : null,
+            href: inSchool || !messagingEnabled ? undefined : null,
           }}
         />
         <Tabs.Screen

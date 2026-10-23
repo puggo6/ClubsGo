@@ -197,6 +197,7 @@ export const updateSchoolConfig = mutation({
     adminApproval: v.boolean(),
     clubAdminApproval: v.boolean(),
     globalSchoolPage: v.boolean(),
+    messagingEnabled: v.boolean(),
   },
   handler: async (ctx, args) => {
     if (!args.schoolId) return;
@@ -207,6 +208,7 @@ export const updateSchoolConfig = mutation({
         adminsNeedApproval: args.adminApproval,
         clubAdminsNeedApproval: args.clubAdminApproval,
         globalSchoolPage: args.globalSchoolPage,
+        messagingEnabled: args.messagingEnabled,
       },
     });
   },

@@ -24,6 +24,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Dropdown } from "react-native-element-dropdown";
 import { ScrollView, Switch } from "react-native-gesture-handler";
 import { DatePickerModal, TimePickerModal } from "react-native-paper-dates";
 import Animated, {
@@ -194,6 +195,10 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
     { label: "As Needed", value: 3 },
   ];
   const gradeOptions = [7, 8, 9, 10, 11, 12];
+  const gradeDropdownOptions = gradeOptions.map((gradeValue) => ({
+    label: `Grade ${gradeValue}`,
+    value: gradeValue,
+  }));
   const clearGradeRange = () => {
     setMinGrade(undefined);
     setMaxGrade(undefined);
@@ -964,121 +969,49 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
         style={{
           color: "#fff",
           fontSize: 18,
-          marginBottom: -6,
+          marginBottom: 6,
           fontFamily: "InterRegular",
           marginLeft: 8,
         }}
       >
         Grade Range (Optional)
       </Text>
-      {isWeb ? (
-        <>
-          <View style={webStyles.pickerContainer}>
-            <select
-              value={minGrade ?? ""}
-              onChange={(e) =>
-                setMinGrade(e.target.value ? Number(e.target.value) : undefined)
-              }
-              style={{
-                color: COLORS.textPrimary,
-                backgroundColor: "transparent",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 12px",
-                fontSize: 16,
-                width: "100%",
-                outline: "none",
-              }}
-            >
-              <option
-                value=""
-                style={{ backgroundColor: COLORS.surfaceAlternate }}
-              >
-                No minimum grade
-              </option>
-              {gradeOptions.map((gradeValue) => (
-                <option
-                  key={gradeValue}
-                  label={`Grade ${gradeValue}`}
-                  value={gradeValue}
-                  style={{ backgroundColor: COLORS.surfaceAlternate }}
-                />
-              ))}
-            </select>
-          </View>
-          <View style={webStyles.pickerContainer}>
-            <select
-              value={maxGrade ?? ""}
-              onChange={(e) =>
-                setMaxGrade(e.target.value ? Number(e.target.value) : undefined)
-              }
-              style={{
-                color: COLORS.textPrimary,
-                backgroundColor: "transparent",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 12px",
-                fontSize: 16,
-                width: "100%",
-                outline: "none",
-              }}
-            >
-              <option
-                value=""
-                style={{ backgroundColor: COLORS.surfaceAlternate }}
-              >
-                No maximum grade
-              </option>
-              {gradeOptions.map((gradeValue) => (
-                <option
-                  key={gradeValue}
-                  label={`Grade ${gradeValue}`}
-                  value={gradeValue}
-                  style={{ backgroundColor: COLORS.surfaceAlternate }}
-                />
-              ))}
-            </select>
-          </View>
-        </>
-      ) : (
-        <>
-          <View style={webStyles.pickerContainer}>
-            <Picker
-              selectedValue={minGrade}
-              onValueChange={(value) => setMinGrade(value)}
-              itemStyle={{ color: COLORS.textPrimary }}
-              selectionColor={COLORS.surfaceAlternate}
-            >
-              <Picker.Item label="Minimum grade" value={undefined} />
-              {gradeOptions.map((gradeValue) => (
-                <Picker.Item
-                  key={gradeValue}
-                  label={`Grade ${gradeValue}`}
-                  value={gradeValue}
-                />
-              ))}
-            </Picker>
-          </View>
-
-          <View style={webStyles.pickerContainer}>
-            <Picker
-              selectedValue={maxGrade}
-              onValueChange={(value) => setMaxGrade(value)}
-              itemStyle={{ color: COLORS.textPrimary }}
-              selectionColor={COLORS.surfaceAlternate}
-            >
-              <Picker.Item label="Maximum grade" value={undefined} />
-              {gradeOptions.map((gradeValue) => (
-                <Picker.Item
-                  key={gradeValue}
-                  label={`Grade ${gradeValue}`}
-                  value={gradeValue}
-                />
-              ))}
-            </Picker>
-          </View>
-        </>
-      )}
+      <View style={webStyles.gradeRangeRow}>
+        <View style={webStyles.gradeField}>
+          <Text style={webStyles.gradeLabel}>Minimum grade</Text>
+          <Dropdown
+            style={webStyles.gradeDropdown}
+            selectedTextStyle={webStyles.gradeSelectedText}
+            placeholderStyle={webStyles.gradePlaceholderText}
+            containerStyle={webStyles.gradeDropdownMenu}
+            itemTextStyle={webStyles.gradeItemText}
+            activeColor={COLORS.surfaceAlternate}
+            data={gradeDropdownOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Select grade"
+            value={minGrade}
+            onChange={(item) => setMinGrade(item.value)}
+          />
+        </View>
+        <View style={webStyles.gradeField}>
+          <Text style={webStyles.gradeLabel}>Maximum grade</Text>
+          <Dropdown
+            style={webStyles.gradeDropdown}
+            selectedTextStyle={webStyles.gradeSelectedText}
+            placeholderStyle={webStyles.gradePlaceholderText}
+            containerStyle={webStyles.gradeDropdownMenu}
+            itemTextStyle={webStyles.gradeItemText}
+            activeColor={COLORS.surfaceAlternate}
+            data={gradeDropdownOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Select grade"
+            value={maxGrade}
+            onChange={(item) => setMaxGrade(item.value)}
+          />
+        </View>
+      </View>
 
       <UnselectButton label="Unselect Grade Range" onPress={clearGradeRange} />
       {/* <View
@@ -1158,7 +1091,7 @@ export default function CreateSceenComp({ onCreate, editing, club }: props) {
         label="Club Rules"
         placeholder="Describe the rules club members must follow"
       />
-
+      <View style={{ height: isWeb ? 0 : 45 }} />
       <StylizedContainer label="Select a Club Color" dark={true}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
           {CLUB_COLORS.map((color) => (
@@ -1336,6 +1269,46 @@ const webStyles = StyleSheet.create({
     borderRadius: 14,
     marginHorizontal: 6,
     marginVertical: 12,
+  },
+  gradeRangeRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 6,
+  },
+  gradeField: {
+    flex: 1,
+    minWidth: 0,
+  },
+  gradeLabel: {
+    color: COLORS.textSecondary,
+    fontFamily: "InterMedium",
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  gradeDropdown: {
+    height: 48,
+    borderColor: COLORS.surfaceLight,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.background,
+  },
+  gradeSelectedText: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+  },
+  gradePlaceholderText: {
+    color: COLORS.textPlaceholder,
+    fontSize: 15,
+  },
+  gradeDropdownMenu: {
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.surfaceLight,
+    borderWidth: 1,
+  },
+  gradeItemText: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
   },
   stepIndicator: {
     flexDirection: "row",
